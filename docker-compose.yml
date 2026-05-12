@@ -36,15 +36,21 @@ services:
       - internal
       - traefik-public
     labels:
-      # /api/v1/* → receiver (приоритет выше, перехватывает раньше Metabase).
-      # Metabase свои внутренние эндпоинты держит на /api/<entity> без /v1,
-      # так что префикс /api/v1 не конфликтует.
+      # /api/v1/* → receiver (приоритет 100, перехватывает раньше Metabase).
       - traefik.enable=true
+      - traefik.constraint-label=traefik-public
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.receiver.rule=Host(`${ANALYTICS_DOMAIN}`) && PathPrefix(`/api/v1`)
-      - traefik.http.routers.receiver.entrypoints=websecure
-      - traefik.http.routers.receiver.tls.certresolver=le
-      - traefik.http.routers.receiver.priority=100
+      # HTTP → редирект на HTTPS (использует глобальный middleware https-redirect).
+      - traefik.http.routers.receiver-http.entrypoints=http
+      - traefik.http.routers.receiver-http.rule=Host(`${ANALYTICS_DOMAIN}`) && PathPrefix(`/api/v1`)
+      - traefik.http.routers.receiver-http.middlewares=https-redirect
+      - traefik.http.routers.receiver-http.priority=100
+      # HTTPS — сам приёмник.
+      - traefik.http.routers.receiver-https.entrypoints=https
+      - traefik.http.routers.receiver-https.rule=Host(`${ANALYTICS_DOMAIN}`) && PathPrefix(`/api/v1`)
+      - traefik.http.routers.receiver-https.tls=true
+      - traefik.http.routers.receiver-https.tls.certresolver=le
+      - traefik.http.routers.receiver-https.priority=100
       - traefik.http.services.receiver.loadbalancer.server.port=8000
 
   metabase:
@@ -57,8 +63,6 @@ services:
       MB_DB_DBNAME: ${MB_DB_DBNAME}
       MB_DB_USER: ${MB_DB_USER}
       MB_DB_PASS: ${MB_DB_PASS}
-      # Metabase сам генерирует ссылки и редиректы — нужно сказать, что мы
-      # за reverse proxy на HTTPS, иначе сломаются auth-редиректы.
       MB_SITE_URL: https://${ANALYTICS_DOMAIN}
     depends_on:
       postgres:
@@ -69,13 +73,19 @@ services:
       - internal
       - traefik-public
     labels:
-      # Корень и всё остальное (кроме /api/v1) → Metabase.
+      # Корень и всё, что не /api/v1 → Metabase (priority=10).
       - traefik.enable=true
+      - traefik.constraint-label=traefik-public
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.metabase.rule=Host(`${ANALYTICS_DOMAIN}`)
-      - traefik.http.routers.metabase.entrypoints=websecure
-      - traefik.http.routers.metabase.tls.certresolver=le
-      - traefik.http.routers.metabase.priority=10
+      - traefik.http.routers.metabase-http.entrypoints=http
+      - traefik.http.routers.metabase-http.rule=Host(`${ANALYTICS_DOMAIN}`)
+      - traefik.http.routers.metabase-http.middlewares=https-redirect
+      - traefik.http.routers.metabase-http.priority=10
+      - traefik.http.routers.metabase-https.entrypoints=https
+      - traefik.http.routers.metabase-https.rule=Host(`${ANALYTICS_DOMAIN}`)
+      - traefik.http.routers.metabase-https.tls=true
+      - traefik.http.routers.metabase-https.tls.certresolver=le
+      - traefik.http.routers.metabase-https.priority=10
       - traefik.http.services.metabase.loadbalancer.server.port=3000
 
 volumes:
@@ -84,6 +94,5 @@ volumes:
 
 networks:
   internal:
-  # Внешняя сеть существующего Traefik (создана отдельно, не нами).
   traefik-public:
     external: true

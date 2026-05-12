@@ -23,6 +23,9 @@ class EventIn(BaseModel):
     crm_task: dict[str, Any] | None = None
     request: dict[str, Any] | None = None
     response: dict[str, Any] | None = None
+    # Свободный объект для деталей сценария (число офферов, URL результата, ...).
+    # Используется с type=scenario.* — структуру задаёт сам проект.
+    scenario: dict[str, Any] | None = None
 
     def payload(self) -> dict[str, Any]:
         """Собирает все type-специфичные подобъекты в один JSONB."""
@@ -34,6 +37,7 @@ class EventIn(BaseModel):
                 "crm_task": self.crm_task,
                 "request": self.request,
                 "response": self.response,
+                "scenario": self.scenario,
             }.items()
             if v is not None
         }

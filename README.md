@@ -50,8 +50,7 @@ digital-assistant  ─┐
 
 | Переменная | Что это | Пример |
 |---|---|---|
-| `ANALYTICS_DOMAIN` | Поддомен для приёмника | `api.analytics.example.com` |
-| `METABASE_DOMAIN` | Поддомен для Metabase | `dashboards.analytics.example.com` |
+| `ANALYTICS_DOMAIN` | Единый домен платформы | `analytics-platform.example.com` |
 | `TELEMETRY_JWT_SECRET` | Секрет для подписи JWT всех проектов | случайные 64 hex |
 | `POSTGRES_PASSWORD` | Пароль БД | случайные 32 символа |
 | `LETSENCRYPT_EMAIL` | Email для Let's Encrypt | `ops@example.com` |
@@ -62,9 +61,9 @@ cp .env.example .env
 docker compose up -d
 ```
 
-После старта:
-- `https://${ANALYTICS_DOMAIN}/api/v1/events` — приёмник
-- `https://${METABASE_DOMAIN}` — Metabase
+После старта (на одном домене разделение по путям):
+- `https://${ANALYTICS_DOMAIN}/` — Metabase
+- `https://${ANALYTICS_DOMAIN}/api/v1/events` — приёмник телеметрии
 
 ## Подключение проекта
 

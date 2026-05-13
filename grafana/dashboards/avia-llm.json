@@ -1,0 +1,66 @@
+{
+  "title": "Avia LLM (tokens, latency)",
+  "uid": "avia-llm",
+  "tags": ["avia", "llm", "telemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "LLM-вызовов всего",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Сумма токенов",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT sum((payload->'llm_tokens'->>'total_tokens')::int) AS value FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Avg токенов на вызов",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS value FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "LLM failure rate",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent",
+        "thresholds": {"mode": "absolute", "steps": [{"color":"green","value":null},{"color":"orange","value":1},{"color":"red","value":5}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (count(*) FILTER (WHERE status='failed') * 100.0 / NULLIF(count(*),0))::numeric(10,2) AS value FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 5, "type": "table", "title": "По модели: вызовов / токенов / latency",
+      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 7},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT payload->'llm_tokens'->>'model' AS \"Модель\", count(*) AS \"Вызовов\", sum((payload->'llm_tokens'->>'total_tokens')::int) AS \"Σ токенов\", avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS \"Avg токенов\", avg((payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"p95 ms\" FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 3 DESC NULLS LAST;"}]
+    },
+    {
+      "id": 6, "type": "table", "title": "По шагу пайплайна",
+      "gridPos": {"x": 0, "y": 11, "w": 24, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT data AS \"Шаг\", count(*) AS \"Вызовов\", count(*) FILTER (WHERE status='failed') AS \"Fail\", avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS \"Avg токенов\", avg((payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"p95 ms\" FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"}]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "LLM latency p95 по шагам",
+      "gridPos": {"x": 0, "y": 19, "w": 24, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "ms"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT $__timeGroup(received_at, '1h') AS time, data AS metric, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int) AS value FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND status='success' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+    }
+  ]
+}

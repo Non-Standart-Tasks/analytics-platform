@@ -4,191 +4,88 @@
   "tags": ["avia", "telemetry"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
-  "time": {
-    "from": "now-7d",
-    "to": "now"
-  },
-  "templating": {
-    "list": []
-  },
+  "time": {"from": "now-7d", "to": "now"},
+  "templating": {"list": []},
   "panels": [
     {
-      "id": 1,
-      "type": "stat",
-      "title": "Поисков за период",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT count(*) AS \"value\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at);"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "textMode": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "blue", "value": null }
-            ]
-          }
-        }
-      }
+      "id": 1, "type": "stat", "title": "Поисков за период",
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at);"}]
     },
     {
-      "id": 2,
-      "type": "stat",
-      "title": "Success rate",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT (count(*) FILTER (WHERE status='success') * 100.0 / NULLIF(count(*),0))::int AS \"value\" FROM events WHERE service='avia_system' AND type IN ('scenario.completed','scenario.failed') AND $__timeFilter(received_at);"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 80 },
-              { "color": "green", "value": 95 }
-            ]
-          }
-        }
-      }
+      "id": 2, "type": "stat", "title": "Success rate",
+      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent",
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "red", "value": null}, {"color": "orange", "value": 80}, {"color": "green", "value": 95}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (count(*) FILTER (WHERE status='success') * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service='avia_system' AND type IN ('scenario.completed','scenario.failed') AND $__timeFilter(received_at);"}]
     },
     {
-      "id": 3,
-      "type": "stat",
-      "title": "Уникальных юзеров",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_email') AS \"value\" FROM events WHERE service='avia_system' AND payload->'scenario'->>'user_email' IS NOT NULL AND $__timeFilter(received_at);"
-        }
-      ]
+      "id": 3, "type": "stat", "title": "Уникальных юзеров",
+      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_email') AS value FROM events WHERE service='avia_system' AND payload->'scenario'->>'user_email' IS NOT NULL AND $__timeFilter(received_at);"}]
     },
     {
-      "id": 4,
-      "type": "stat",
-      "title": "Билетов юзерам (avg)",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT avg((payload->'scenario'->>'tickets_shown')::int)::numeric(10,1) AS \"value\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'tickets_shown' IS NOT NULL AND $__timeFilter(received_at);"
-        }
-      ]
+      "id": 4, "type": "stat", "title": "Билетов юзерам (avg)",
+      "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT avg((payload->'scenario'->>'tickets_shown')::int)::numeric(10,1) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'tickets_shown' IS NOT NULL AND $__timeFilter(received_at);"}]
     },
     {
-      "id": 9,
-      "type": "table",
-      "title": "Воронка: найдено → показано",
-      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 10 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", data AS \"Запрос\", (payload->'scenario'->>'offers_count')::int AS \"Найдено\", (payload->'scenario'->>'tickets_shown')::int AS \"Показано\", CASE WHEN (payload->'scenario'->>'offers_count')::int > 0 THEN round(100.0 * (payload->'scenario'->>'tickets_shown')::int / (payload->'scenario'->>'offers_count')::int, 2) ELSE NULL END AS \"% конверсии\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'tickets_shown' IS NOT NULL AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
-        }
-      ]
+      "id": 5, "type": "stat", "title": "Pipeline p95 (sec)",
+      "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "s",
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 20}, {"color": "red", "value": 35}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) / 1000.0)::numeric(10,1) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at);"}]
     },
     {
-      "id": 5,
-      "type": "timeseries",
-      "title": "Поиски по времени (started vs failed)",
-      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "time_series",
-          "rawSql": "SELECT $__timeGroup(received_at, '1h') AS time, type AS metric, count(*) AS value FROM events WHERE service='avia_system' AND type LIKE 'scenario.%' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "bars",
-            "stacking": { "mode": "normal" }
-          }
-        }
-      }
+      "id": 6, "type": "stat", "title": "LLM-вызовов",
+      "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_system' AND type='llm.inference.completed' AND $__timeFilter(received_at);"}]
     },
     {
-      "id": 6,
-      "type": "barchart",
-      "title": "Топ направлений",
-      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT (payload->'scenario'->>'origin') || ' → ' || (payload->'scenario'->>'destination') AS route, count(*) AS searches FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'destination' IS NOT NULL AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"
-        }
-      ],
-      "options": {
-        "orientation": "horizontal",
-        "xField": "searches"
-      }
+      "id": 7, "type": "timeseries", "title": "Поиски по времени (started / completed / failed)",
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT $__timeGroup(received_at, '1h') AS time, type AS metric, count(*) AS value FROM events WHERE service='avia_system' AND type LIKE 'scenario.%' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
     },
     {
-      "id": 7,
-      "type": "table",
-      "title": "Последние поиски",
-      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 10 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", (payload->'scenario'->>'offers_count')::int AS \"Офферов\", status AS \"Статус\", payload->'scenario'->>'aviasales_url' AS \"URL Aviasales\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
-        }
-      ],
-      "options": {
-        "showHeader": true
-      }
+      "id": 8, "type": "barchart", "title": "Топ направлений",
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "options": {"orientation": "horizontal", "xField": "searches"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'origin') || ' → ' || (payload->'scenario'->>'destination') AS route, count(*) AS searches FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'destination' IS NOT NULL AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
     },
     {
-      "id": 8,
-      "type": "table",
-      "title": "Ошибки avia-поиска",
-      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 8 },
-      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", payload->'scenario'->>'error_type' AS \"Тип ошибки\", payload->'scenario'->>'error_message' AS \"Сообщение\" FROM events WHERE service='avia_system' AND type='scenario.failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
-        }
-      ]
+      "id": 9, "type": "table", "title": "Последние поиски",
+      "gridPos": {"x": 0, "y": 12, "w": 24, "h": 10},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", (payload->'scenario'->>'tickets_shown')::int AS \"Билетов\", ((payload->'scenario'->'timings_ms'->>'total')::int / 1000.0)::numeric(10,1) AS \"Sec\", status AS \"Статус\", payload->'scenario'->>'aviasales_url' AS \"URL\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
+    },
+    {
+      "id": 10, "type": "table", "title": "Ошибки avia-поиска",
+      "gridPos": {"x": 0, "y": 22, "w": 24, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", payload->'scenario'->>'error_type' AS \"Тип ошибки\", payload->'scenario'->>'error_message' AS \"Сообщение\" FROM events WHERE service='avia_system' AND type='scenario.failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]
     }
   ]
 }

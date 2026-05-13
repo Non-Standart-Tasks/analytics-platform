@@ -1,0 +1,73 @@
+{
+  "title": "Avia Funnel (raw → merged → viable → tickets)",
+  "uid": "avia-funnel",
+  "tags": ["avia", "funnel", "telemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-7d", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "1. Raw (TravelPayouts)",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT avg((payload->'scenario'->>'raw_proposals_count')::int)::int AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'raw_proposals_count' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "2. Merged (после AMA)",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT avg((payload->'scenario'->>'merged_count')::int)::int AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'merged_count' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "3. Viable (после rec engine)",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT avg((payload->'scenario'->>'viable_count')::int)::int AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'viable_count' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "4. Tickets (юзеру)",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {
+        "thresholds": {"mode": "absolute", "steps": [{"color":"red","value":null},{"color":"orange","value":3},{"color":"green","value":10}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT avg((payload->'scenario'->>'tickets_shown')::int)::numeric(10,1) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'tickets_shown' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 5, "type": "barchart", "title": "Воронка средних значений",
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "options": {"orientation": "horizontal", "xField": "avg"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT '1. Raw proposals' AS stage, avg((payload->'scenario'->>'raw_proposals_count')::int)::int AS avg FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '2. Merged with AMA' AS stage, avg((payload->'scenario'->>'merged_count')::int)::int AS avg FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '3. Viable (rec engine)' AS stage, avg((payload->'scenario'->>'viable_count')::int)::int AS avg FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '4. Tickets shown' AS stage, avg((payload->'scenario'->>'tickets_shown')::int)::int AS avg FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY 1;"}]
+    },
+    {
+      "id": 6, "type": "stat", "title": "% Conversion: Tickets / Raw",
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent"}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (avg(100.0 * (payload->'scenario'->>'tickets_shown')::int / NULLIF((payload->'scenario'->>'raw_proposals_count')::int, 0)))::numeric(10,2) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'raw_proposals_count' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 7, "type": "table", "title": "Per-search funnel",
+      "gridPos": {"x": 0, "y": 12, "w": 24, "h": 10},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", (payload->'scenario'->>'merged_count')::int AS \"Merged\", (payload->'scenario'->>'viable_count')::int AS \"Viable\", (payload->'scenario'->>'tickets_shown')::int AS \"Tickets\", CASE WHEN (payload->'scenario'->>'raw_proposals_count')::int > 0 THEN round(100.0 * (payload->'scenario'->>'tickets_shown')::int / (payload->'scenario'->>'raw_proposals_count')::int, 2) END AS \"% конв.\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
+    },
+    {
+      "id": 8, "type": "table", "title": "Поиски с 0 viable (фильтры всё съели)",
+      "gridPos": {"x": 0, "y": 22, "w": 24, "h": 6},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", (payload->'scenario'->>'merged_count')::int AS \"Merged\", (payload->'scenario'->>'nonstop_filter_success')::text AS \"nonstop_ok\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND (payload->'scenario'->>'viable_count')::int = 0 AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]
+    }
+  ]
+}

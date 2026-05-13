@@ -64,6 +64,10 @@ services:
       MB_DB_USER: ${MB_DB_USER}
       MB_DB_PASS: ${MB_DB_PASS}
       MB_SITE_URL: https://${ANALYTICS_DOMAIN}
+      # JVM cap: без него Metabase жрёт ~2.5 GiB. 512 MiB достаточно
+      # для дашбордов с десятками тысяч событий.
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+    mem_limit: 768m
     depends_on:
       postgres:
         condition: service_healthy

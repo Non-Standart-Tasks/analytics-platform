@@ -1,0 +1,20 @@
+# Provisioning provider: Grafana при старте сканит /var/lib/grafana/dashboards
+# и подгружает любые .json как dashboards. Папка монтируется через
+# docker-compose из ./grafana/dashboards/.
+#
+# allowUiUpdates: true — можно править в UI, но при следующем перезапуске
+# Grafana накатит исходник из JSON (поведение «git как source of truth»).
+
+apiVersion: 1
+
+providers:
+  - name: 'analytics-dashboards'
+    orgId: 1
+    folder: 'Avia'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

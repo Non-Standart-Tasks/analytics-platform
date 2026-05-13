@@ -74,6 +74,9 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Дашборды-as-code (см. grafana/dashboards/*.json).
+      # Provider config grafana/provisioning/dashboards/provider.yml сканит эту папку.
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - internal
       - traefik-public

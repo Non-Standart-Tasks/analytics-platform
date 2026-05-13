@@ -1,0 +1,21 @@
+# Авто-провижн PostgreSQL-datasource при старте Grafana.
+# Файл монтируется в /etc/grafana/provisioning/datasources/ — Grafana
+# применяет его без участия пользователя.
+
+apiVersion: 1
+
+datasources:
+  - name: analytics
+    type: postgres
+    uid: analytics-postgres
+    url: ${POSTGRES_HOST}:${POSTGRES_PORT}
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: true
+    editable: true

@@ -1,12 +1,12 @@
 # da-analytics
 
-Мульти-проектный приёмник телеметрии + дашборды в Metabase.
+Мульти-проектный приёмник телеметрии + дашборды в Grafana.
 
 ## Что это
 
 ```
 digital-assistant  ─┐
-другой_проект      ─┼─HTTP POST──▶  receiver (FastAPI) ──▶ Postgres ◀── Metabase
+другой_проект      ─┼─HTTP POST──▶  receiver (FastAPI) ──▶ Postgres ◀── Grafana
 ещё_один_проект    ─┘                     │
                                        Traefik (HTTPS + публичные домены)
 ```
@@ -15,7 +15,9 @@ digital-assistant  ─┐
   принадлежит проекту из токена, и кладёт в БД через batch-очередь.
 - **Postgres** — единая таблица `events` (партиционирована по месяцам),
   один проект отличается от другого полем `service`.
-- **Metabase** — дашборды для команды. Подключается к Postgres read-only.
+- **Grafana** — дашборды для команды. Datasource провижится автоматически
+  из `grafana/provisioning/datasources/analytics.yml`. Лёгкая (~50 MB RAM),
+  SQL пишем в панелях.
 - **Traefik** — HTTPS и Let's Encrypt.
 
 ## Multi-project: как устроено
@@ -32,7 +34,7 @@ digital-assistant  ─┐
 4. **Per-project схемы** — таблица [`event_schemas`](receiver/migrations/001_init.sql)
    (`project_key`, `event_type`, `json_schema`). Когда пришлёшь схемы по проектам — заливаем туда,
    приёмник валидирует payload против них. До этого момента — только базовая валидация общих полей.
-5. **Per-project view'ы** — для удобства Metabase можно завести
+5. **Per-project view'ы** — для удобства Grafana можно завести
    `CREATE VIEW events_<project> AS SELECT * FROM events WHERE service = '<key>'`.
    Авто-создание планируется в `scripts/register_project.sh` (TODO).
 
@@ -42,7 +44,7 @@ digital-assistant  ─┐
 2. Сгенерировать JWT с claim `{"project": "chat_system"}`, выдать команде проекта.
 3. Команда проекта в своём `telemetry-client` ставит `service="chat_system"` и подключается.
 4. (Опционально) Прислать JSON-схемы событий → заливаем в `event_schemas`.
-5. (Опционально) Создать `events_chat_system` view для Metabase.
+5. (Опционально) Создать `events_chat_system` view для Grafana.
 
 ## Деплой (заглушка)
 
@@ -62,7 +64,7 @@ docker compose up -d
 ```
 
 После старта (на одном домене разделение по путям):
-- `https://${ANALYTICS_DOMAIN}/` — Metabase
+- `https://${ANALYTICS_DOMAIN}/` — Grafana
 - `https://${ANALYTICS_DOMAIN}/api/v1/events` — приёмник телеметрии
 
 ## Подключение проекта
@@ -100,4 +102,4 @@ TELEMETRY_SERVICE=avia_system   # ровно как в projects.key
 - [ ] Rate-limit на приёмник (Traefik middleware)
 - [ ] `scripts/register_project.sh` — atomic: INSERT в projects + создать view + сгенерировать JWT
 - [ ] Валидация payload против `event_schemas.json_schema` (когда пользователь пришлёт схемы)
-- [ ] Дашборды Metabase, экспортированные в `dashboards/`
+- [ ] Дашборды Grafana, экспортированные в `dashboards/`

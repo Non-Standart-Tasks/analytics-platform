@@ -53,48 +53,49 @@ services:
       - traefik.http.routers.receiver-https.priority=100
       - traefik.http.services.receiver.loadbalancer.server.port=8000
 
-  metabase:
-    image: metabase/metabase:latest
+  grafana:
+    image: grafana/grafana-oss:latest
     restart: unless-stopped
     environment:
-      MB_DB_TYPE: ${MB_DB_TYPE}
-      MB_DB_HOST: ${MB_DB_HOST}
-      MB_DB_PORT: ${MB_DB_PORT}
-      MB_DB_DBNAME: ${MB_DB_DBNAME}
-      MB_DB_USER: ${MB_DB_USER}
-      MB_DB_PASS: ${MB_DB_PASS}
-      MB_SITE_URL: https://${ANALYTICS_DOMAIN}
-      # JVM cap: без него Metabase жрёт ~2.5 GiB. 512 MiB достаточно
-      # для дашбордов с десятками тысяч событий.
-      JAVA_OPTS: "-Xmx512m -Xms256m"
-    mem_limit: 768m
+      # Админ создаётся при первом старте; пароль из .env.
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SERVER_ROOT_URL: https://${ANALYTICS_DOMAIN}
+      # Datasource провижится из ./grafana/provisioning/datasources/analytics.yml
+      # — Grafana подставит эти env-переменные в шаблон.
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - metabase_data:/metabase-data
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - internal
       - traefik-public
     labels:
-      # Корень и всё, что не /api/v1 → Metabase (priority=10).
+      # Корень и всё, что не /api/v1 → Grafana (priority=10).
       - traefik.enable=true
       - traefik.constraint-label=traefik-public
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.metabase-http.entrypoints=http
-      - traefik.http.routers.metabase-http.rule=Host(`${ANALYTICS_DOMAIN}`)
-      - traefik.http.routers.metabase-http.middlewares=https-redirect
-      - traefik.http.routers.metabase-http.priority=10
-      - traefik.http.routers.metabase-https.entrypoints=https
-      - traefik.http.routers.metabase-https.rule=Host(`${ANALYTICS_DOMAIN}`)
-      - traefik.http.routers.metabase-https.tls=true
-      - traefik.http.routers.metabase-https.tls.certresolver=le
-      - traefik.http.routers.metabase-https.priority=10
-      - traefik.http.services.metabase.loadbalancer.server.port=3000
+      - traefik.http.routers.grafana-http.entrypoints=http
+      - traefik.http.routers.grafana-http.rule=Host(`${ANALYTICS_DOMAIN}`)
+      - traefik.http.routers.grafana-http.middlewares=https-redirect
+      - traefik.http.routers.grafana-http.priority=10
+      - traefik.http.routers.grafana-https.entrypoints=https
+      - traefik.http.routers.grafana-https.rule=Host(`${ANALYTICS_DOMAIN}`)
+      - traefik.http.routers.grafana-https.tls=true
+      - traefik.http.routers.grafana-https.tls.certresolver=le
+      - traefik.http.routers.grafana-https.priority=10
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
 
 volumes:
   postgres_data:
-  metabase_data:
+  grafana_data:
 
 networks:
   internal:

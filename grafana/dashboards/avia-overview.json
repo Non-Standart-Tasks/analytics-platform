@@ -81,8 +81,54 @@
         "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", (payload->'scenario'->>'tickets_shown')::int AS \"Билетов\", ((payload->'scenario'->'timings_ms'->>'total')::int / 1000.0)::numeric(10,1) AS \"Sec\", status AS \"Статус\", payload->'scenario'->>'aviasales_url' AS \"URL\" FROM events WHERE service='avia_system' AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
     },
     {
-      "id": 10, "type": "table", "title": "Ошибки avia-поиска",
-      "gridPos": {"x": 0, "y": 22, "w": 24, "h": 8},
+      "id": 11, "type": "stat", "title": "Empty rate (юзер не получил билетов)",
+      "gridPos": {"x": 0, "y": 22, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent",
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color":"green","value":null},{"color":"orange","value":5},{"color":"red","value":15}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT round(100.0 * count(*) FILTER (WHERE type='scenario.failed' OR (type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0)) / NULLIF(count(*),0), 2) AS value FROM events WHERE service='avia_system' AND type IN ('scenario.completed','scenario.failed') AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 12, "type": "stat", "title": "Empty: провайдер упал",
+      "gridPos": {"x": 6, "y": 22, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_system' AND type='scenario.failed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 13, "type": "stat", "title": "Empty: фильтры съели",
+      "gridPos": {"x": 12, "y": 22, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0 AND payload->'scenario'->>'early_return_reason' IS NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 14, "type": "stat", "title": "Empty: early-return (compliance/возрасты)",
+      "gridPos": {"x": 18, "y": 22, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_system' AND type='scenario.completed' AND payload->'scenario'->>'early_return_reason' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 15, "type": "timeseries", "title": "Empty searches by reason (stacked)",
+      "gridPos": {"x": 0, "y": 26, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT $__timeGroup(received_at, '1h') AS time, CASE WHEN type='scenario.failed' THEN 'provider_failed' WHEN payload->'scenario'->>'early_return_reason' IS NOT NULL THEN 'early_return' WHEN (payload->'scenario'->>'tickets_shown')::int = 0 THEN 'rec_engine_filtered_empty' END AS metric, count(*) AS value FROM events WHERE service='avia_system' AND (type='scenario.failed' OR (type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0)) AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+    },
+    {
+      "id": 16, "type": "table", "title": "Юзер ничего не получил (с причиной)",
+      "gridPos": {"x": 12, "y": 26, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", CASE WHEN type='scenario.failed' THEN COALESCE('provider_failed: ' || (payload->'scenario'->>'error_type'), 'provider_failed') WHEN payload->'scenario'->>'early_return_reason' IS NOT NULL THEN 'early_return: ' || (payload->'scenario'->>'early_return_reason') ELSE 'rec_engine_filtered_empty' END AS \"Причина\" FROM events WHERE service='avia_system' AND (type='scenario.failed' OR (type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0)) AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]
+    },
+    {
+      "id": 10, "type": "table", "title": "Ошибки avia-поиска (только scenario.failed)",
+      "gridPos": {"x": 0, "y": 34, "w": 24, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", payload->'scenario'->>'error_type' AS \"Тип ошибки\", payload->'scenario'->>'error_message' AS \"Сообщение\" FROM events WHERE service='avia_system' AND type='scenario.failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]

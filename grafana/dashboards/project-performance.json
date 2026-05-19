@@ -1,0 +1,85 @@
+{
+  "title": "Project Performance (timings)",
+  "uid": "project-performance",
+  "tags": ["multi-service", "performance", "telemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Project",
+        "type": "query",
+        "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+        "query": "SELECT DISTINCT service FROM events WHERE type = 'scenario.completed' ORDER BY service;",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {"selected": false, "text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "p50 total (sec)",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (percentile_cont(0.5) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) / 1000.0)::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "p95 total (sec)",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "s",
+        "thresholds": {"mode": "absolute", "steps": [{"color":"green","value":null},{"color":"orange","value":20},{"color":"red","value":35}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) / 1000.0)::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "p99 total (sec)",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (percentile_cont(0.99) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) / 1000.0)::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "max total (sec)",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (max((payload->'scenario'->'timings_ms'->>'total')::int) / 1000.0)::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Total latency p50/p95/p99 во времени",
+      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 9},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "ms"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, percentile_cont(0.5) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) AS p50, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) AS p95, percentile_cont(0.99) WITHIN GROUP (ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int) AS p99 FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 1;"}]
+    },
+    {
+      "id": 6, "type": "barchart", "title": "Среднее время по этапам (ms)",
+      "gridPos": {"x": 0, "y": 13, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "ms"}},
+      "options": {"orientation": "horizontal", "xField": "ms"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT 'step_0_to_2 (LLM parse + TravelPayouts + AMA merge)' AS stage, avg((payload->'scenario'->'timings_ms'->>'step_0_to_2_full_aviasales_call')::int)::int AS ms FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT 'step_3 (recommendation engine)' AS stage, avg((payload->'scenario'->'timings_ms'->>'step_3_recommendation_engine')::int)::int AS ms FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 7, "type": "table", "title": "Самые медленные поиски",
+      "gridPos": {"x": 12, "y": 13, "w": 12, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Запрос\", ((payload->'scenario'->'timings_ms'->>'total')::int / 1000.0)::numeric(10,1) AS \"Total sec\", (payload->'scenario'->'timings_ms'->>'step_0_to_2_full_aviasales_call')::int AS \"Step0-2 ms\", (payload->'scenario'->'timings_ms'->>'step_3_recommendation_engine')::int AS \"Step3 ms\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->'timings_ms'->>'total' IS NOT NULL AND $__timeFilter(received_at) ORDER BY (payload->'scenario'->'timings_ms'->>'total')::int DESC LIMIT 50;"}]
+    }
+  ]
+}

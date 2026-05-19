@@ -1,0 +1,115 @@
+{
+  "title": "Project Overview (any service)",
+  "uid": "project-overview",
+  "tags": ["multi-service", "telemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Project",
+        "type": "query",
+        "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+        "query": "SELECT DISTINCT service FROM events ORDER BY service;",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": "%",
+        "current": {"selected": false, "text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Событий за период",
+      "gridPos": {"x": 0, "y": 0, "w": 5, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Active services",
+      "gridPos": {"x": 5, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(DISTINCT service) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Event types",
+      "gridPos": {"x": 9, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(DISTINCT type) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Success rate",
+      "gridPos": {"x": 13, "y": 0, "w": 5, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent",
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "red", "value": null}, {"color": "orange", "value": 90}, {"color": "green", "value": 99}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (count(*) FILTER (WHERE status = 'success') * 100.0 / NULLIF(count(*) FILTER (WHERE status IN ('success', 'failed')), 0))::numeric(5,1) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Failed events",
+      "gridPos": {"x": 18, "y": 0, "w": 3, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 50}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 6, "type": "stat", "title": "Events/min (avg)",
+      "gridPos": {"x": 21, "y": 0, "w": 3, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 1}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (count(*)::numeric / NULLIF(EXTRACT(EPOCH FROM ($__timeTo() - $__timeFrom())) / 60.0, 0))::numeric(10,2) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at);"}]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "События по времени (по type, stacked)",
+      "gridPos": {"x": 0, "y": 4, "w": 16, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, type AS metric, count(*) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+    },
+    {
+      "id": 8, "type": "barchart", "title": "Топ event types",
+      "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "options": {"orientation": "horizontal", "xField": "count"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT type AS event_type, count(*) AS count FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
+    },
+    {
+      "id": 9, "type": "table", "title": "Breakdown: service × type × status",
+      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 9},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT service AS \"Service\", type AS \"Type\", status AS \"Status\", count(*) AS \"Count\" FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 50;"}]
+    },
+    {
+      "id": 10, "type": "table", "title": "Последние события",
+      "gridPos": {"x": 12, "y": 12, "w": 12, "h": 9},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", type AS \"Type\", status AS \"Status\", data AS \"Data\" FROM events WHERE service IN ($service) AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
+    },
+    {
+      "id": 11, "type": "table", "title": "Failed events (детали)",
+      "gridPos": {"x": 0, "y": 21, "w": 24, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", type AS \"Type\", data AS \"Data\", payload::text AS \"Payload\" FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]
+    }
+  ]
+}

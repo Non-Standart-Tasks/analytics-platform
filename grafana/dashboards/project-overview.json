@@ -109,6 +109,14 @@
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", type AS \"Type\", data AS \"Data\", payload::text AS \"Payload\" FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]
+    },
+    {
+      "id": 12, "type": "table", "title": "Последние поиски (scenario.completed)",
+      "gridPos": {"x": 0, "y": 29, "w": 24, "h": 10},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "description": "Только для проектов, шлющих type='scenario.completed' с payload.scenario (avia-style schema).",
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", (payload->'scenario'->>'tickets_shown')::int AS \"Билетов\", ((payload->'scenario'->'timings_ms'->>'total')::int / 1000.0)::numeric(10,1) AS \"Sec\", status AS \"Статус\", payload->'scenario'->>'aviasales_url' AS \"URL\" FROM events WHERE service IN ($service) AND type = 'scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
     }
   ]
 }

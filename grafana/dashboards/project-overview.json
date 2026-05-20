@@ -85,7 +85,13 @@
       "id": 8, "type": "bargauge", "title": "Топ event types",
       "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"},
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "reduceOptions": {"values": true, "calcs": ["lastNotNull"], "fields": "/^events$/"}
+      },
       "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "continuous-BlPu"}}},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT type, count(*)::int AS events FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]

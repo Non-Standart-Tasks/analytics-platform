@@ -79,7 +79,7 @@
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
       "targets": [{"refId": "A", "format": "time_series",
-        "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, type AS metric, count(*) AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+        "rawSql": "SELECT $__timeGroup(received_at, '5m') AS time, type AS metric, count(*)::float AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
     },
     {
       "id": 8, "type": "barchart", "title": "Топ event types",
@@ -87,7 +87,7 @@
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "options": {"orientation": "horizontal", "xField": "count"},
       "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT type AS event_type, count(*) AS count FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
+        "rawSql": "SELECT type AS event_type, count(*)::int AS count FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
     },
     {
       "id": 9, "type": "table", "title": "Breakdown: service × type × status",

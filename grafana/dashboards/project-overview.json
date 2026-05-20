@@ -85,9 +85,10 @@
       "id": 8, "type": "barchart", "title": "Топ event types",
       "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "options": {"orientation": "horizontal", "xField": "count"},
+      "options": {"orientation": "horizontal", "xField": "events", "xTickLabelRotation": 0, "showValue": "auto"},
+      "fieldConfig": {"defaults": {"unit": "short"}},
       "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT type AS event_type, count(*)::int AS count FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
+        "rawSql": "SELECT type AS event_type, count(*)::bigint AS events FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
     },
     {
       "id": 9, "type": "table", "title": "Breakdown: service × type × status",

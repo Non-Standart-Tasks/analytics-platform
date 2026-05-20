@@ -82,13 +82,13 @@
         "rawSql": "SELECT $__timeGroup(received_at, '5m') AS time, type AS metric, count(*)::float AS value FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
     },
     {
-      "id": 8, "type": "barchart", "title": "Топ event types",
+      "id": 8, "type": "bargauge", "title": "Топ event types",
       "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "options": {"orientation": "horizontal", "xField": "events", "xTickLabelRotation": 0, "showValue": "auto"},
-      "fieldConfig": {"defaults": {"unit": "short"}},
+      "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"},
+      "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "continuous-BlPu"}}},
       "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT type AS event_type, count(*)::bigint AS events FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
+        "rawSql": "SELECT type, count(*)::int AS events FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"}]
     },
     {
       "id": 9, "type": "table", "title": "Breakdown: service × type × status",

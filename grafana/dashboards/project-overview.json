@@ -29,8 +29,6 @@
       "description": "scenario.completed за последние 7 дней. Не зависит от time picker сверху.",
       "gridPos": {"x": 0, "y": 0, "w": 12, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}}},
-      "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '7 days';"}]
     },
@@ -39,8 +37,6 @@
       "description": "scenario.completed за последние 30 дней. Не зависит от time picker сверху.",
       "gridPos": {"x": 12, "y": 0, "w": 12, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "purple"}}},
-      "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '30 days';"}]
     },

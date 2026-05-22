@@ -1,0 +1,753 @@
+{
+  "title": "Реестр ошибок (Error Registry)",
+  "uid": "error-registry",
+  "tags": [
+    "errors",
+    "telemetry",
+    "registry"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 4,
+  "refresh": "30s",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Project",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "analytics-postgres"
+        },
+        "query": "SELECT DISTINCT service FROM events WHERE status = 'failed' ORDER BY service;",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Всего failed-событий",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at);"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Resolved (PR merged)",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        }
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) AND ( (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%') );"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "In Review (PR open)",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "yellow"
+          }
+        }
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) AND type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-destination%';"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Unresolved + Not a bug",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        }
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH classified AS (SELECT CASE WHEN (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%') THEN 'resolved' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-destination%' THEN 'in_review' ELSE 'other' END AS bucket FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at)) SELECT count(*) AS value FROM classified WHERE bucket = 'other';"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Сводка по типам ошибок",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Статус"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Resolved (PR #381)": {
+                        "color": "green",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Resolved (PR #383)": {
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Resolved (PR #384)": {
+                        "color": "green",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "In Review (PR #385)": {
+                        "color": "yellow",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unresolved (#5 LLM год даты)": {
+                        "color": "red",
+                        "index": 4
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unresolved (#6 data lookup)": {
+                        "color": "red",
+                        "index": 5
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unresolved (#7 нет контекста)": {
+                        "color": "red",
+                        "index": 6
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "External API issue": {
+                        "color": "orange",
+                        "index": 7
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Not a bug (no tickets)": {
+                        "color": "blue",
+                        "index": 8
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unknown": {
+                        "color": "purple",
+                        "index": 9
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT CASE WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range' THEN 'IndexError: list index out of range' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%' THEN 'AttributeError: xterms' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''' THEN 'KeyError: [nan] not in index' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$' THEN 'KeyError: IATA code (3 lat letters)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' THEN 'KeyError: other (cyrillic / data)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'TypeError' THEN 'TypeError: ' || COALESCE(payload->'scenario'->>'error_message', '?') WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}' THEN 'NothingFound: unknown IATA (3 lat letters)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-destination%' THEN 'NothingFound: invalid-destination (LLM country code)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%' THEN 'NothingFound: invalid-adult-passengers (>9 паксов)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-date%' THEN 'NothingFound: invalid-date (год > +365 / в прошлом)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' THEN 'NothingFound: no tickets' WHEN type = 'scenario.failed' THEN 'scenario.failed: ' || COALESCE(payload->'scenario'->>'error_type', 'unknown') WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IS NULL THEN 'HTTP: no response (timeout/conn err)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '429' THEN 'HTTP 429: rate-limit' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '503' THEN 'HTTP 503: service unavailable' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '400' THEN 'HTTP 400: bad request' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '200' THEN 'HTTP 200 marked failed (business validation)' ELSE 'Other' END AS \"Категория\", CASE WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range' THEN 'Resolved (PR #381)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%' THEN 'Resolved (PR #381)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''' THEN 'Resolved (PR #381)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$' THEN 'Resolved (PR #383)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}' THEN 'Resolved (PR #383)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' THEN 'Unresolved (#6 data lookup)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'TypeError' THEN 'Unresolved (#6 data lookup)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-destination%' THEN 'In Review (PR #385)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%' THEN 'Resolved (PR #384)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-date%' THEN 'Unresolved (#5 LLM год даты)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' THEN 'Not a bug (no tickets)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IS NULL THEN 'Unresolved (#7 нет контекста)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IN ('429', '503') THEN 'External API issue' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '400' THEN 'In Review (PR #385)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '200' THEN 'Unresolved (#7 нет контекста)' ELSE 'Unknown' END AS \"Статус\", count(*) AS \"Сколько раз\", min(received_at) AS \"Первая\", max(received_at) AS \"Последняя\" FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 3 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "График: ошибки по категориям",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Категория",
+        "stacking": {
+          "mode": "normal"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Resolved"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In Review"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unresolved"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Not a bug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "External API"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH classified AS (SELECT CASE WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range' THEN 'IndexError: list index out of range' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%' THEN 'AttributeError: xterms' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''' THEN 'KeyError: [nan] not in index' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$' THEN 'KeyError: IATA (3 letters)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' THEN 'KeyError: cyrillic/other' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'TypeError' THEN 'TypeError' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}' THEN 'NothingFound: unknown IATA' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-destination%' THEN 'NothingFound: LLM country code' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%' THEN 'NothingFound: >9 passengers' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-date%' THEN 'NothingFound: invalid-date' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' THEN 'NothingFound: no tickets' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IS NULL THEN 'HTTP: no response' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '429' THEN 'HTTP 429: rate-limit' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '503' THEN 'HTTP 503: unavailable' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '400' THEN 'HTTP 400: bad request' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '200' THEN 'HTTP 200 marked failed' ELSE 'Other' END AS category, CASE WHEN (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$') THEN 'Resolved' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%' THEN 'In Review' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND (payload->'scenario'->>'error_message' IS NULL OR (payload->'scenario'->>'error_message' NOT LIKE '%invalid-destination%' AND payload->'scenario'->>'error_message' NOT LIKE '%invalid-date%' AND payload->'scenario'->>'error_message' NOT LIKE '%invalid-adult-passengers%' AND payload->'scenario'->>'error_message' NOT LIKE '%unknown locations%')) THEN 'Not a bug' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IN ('429', '503') THEN 'External API' ELSE 'Unresolved' END AS status FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at)) SELECT category AS \"Категория\", count(*) FILTER (WHERE status = 'Resolved') AS \"Resolved\", count(*) FILTER (WHERE status = 'In Review') AS \"In Review\", count(*) FILTER (WHERE status = 'Unresolved') AS \"Unresolved\", count(*) FILTER (WHERE status = 'Not a bug') AS \"Not a bug\", count(*) FILTER (WHERE status = 'External API') AS \"External API\" FROM classified GROUP BY category ORDER BY count(*) DESC;"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Каждая failed-запись (детально, с user_query)",
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 14
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Статус"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Resolved (PR #381)": {
+                        "color": "green",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Resolved (PR #383)": {
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Resolved (PR #384)": {
+                        "color": "green",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "In Review (PR #385)": {
+                        "color": "yellow",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unresolved (#5 LLM год даты)": {
+                        "color": "red",
+                        "index": 4
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unresolved (#6 data lookup)": {
+                        "color": "red",
+                        "index": 5
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unresolved (#7 нет контекста)": {
+                        "color": "red",
+                        "index": 6
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "External API issue": {
+                        "color": "orange",
+                        "index": 7
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Not a bug (no tickets)": {
+                        "color": "blue",
+                        "index": 8
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Unknown": {
+                        "color": "purple",
+                        "index": 9
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", type AS \"Тип события\", CASE WHEN type = 'scenario.failed' THEN payload->'scenario'->>'error_type' WHEN type = 'http.request.sent' THEN COALESCE(payload->'response'->>'status_code', 'no-response') ELSE '-' END AS \"Error / Code\", CASE WHEN type = 'scenario.failed' THEN LEFT(COALESCE(payload->'scenario'->>'error_message', ''), 200) WHEN type = 'http.request.sent' THEN LEFT(COALESCE(payload->'response'->>'error', payload->'request'->>'url', ''), 200) ELSE '' END AS \"Сообщение / URL\", LEFT(COALESCE(data, ''), 200) AS \"User query\", CASE WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range' THEN 'Resolved (PR #381)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%' THEN 'Resolved (PR #381)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''' THEN 'Resolved (PR #381)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$' THEN 'Resolved (PR #383)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}' THEN 'Resolved (PR #383)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' THEN 'Unresolved (#6 data lookup)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'TypeError' THEN 'Unresolved (#6 data lookup)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-destination%' THEN 'In Review (PR #385)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%' THEN 'Resolved (PR #384)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-date%' THEN 'Unresolved (#5 LLM год даты)' WHEN type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' THEN 'Not a bug (no tickets)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IS NULL THEN 'Unresolved (#7 нет контекста)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' IN ('429', '503') THEN 'External API issue' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '400' THEN 'In Review (PR #385)' WHEN type = 'http.request.sent' AND payload->'response'->>'status_code' = '200' THEN 'Unresolved (#7 нет контекста)' ELSE 'Unknown' END AS \"Статус\" FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 500;"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Динамика по дням (resolved / in_review / unresolved / not-a-bug)",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "options": {
+        "stacking": {
+          "mode": "normal"
+        },
+        "xField": "day"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resolved"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "in_review"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "unresolved"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "not_a_bug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at::date AS day, count(*) FILTER (WHERE (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$')) AS resolved, count(*) FILTER (WHERE type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%') AS in_review, count(*) FILTER (WHERE type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND (payload->'scenario'->>'error_message' IS NULL OR (payload->'scenario'->>'error_message' NOT LIKE '%invalid-destination%' AND payload->'scenario'->>'error_message' NOT LIKE '%invalid-date%' AND payload->'scenario'->>'error_message' NOT LIKE '%invalid-adult-passengers%' AND payload->'scenario'->>'error_message' NOT LIKE '%unknown locations%'))) AS not_a_bug, count(*) FILTER (WHERE NOT ( (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'IndexError' AND payload->'scenario'->>'error_message' = 'list index out of range') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'AttributeError' AND payload->'scenario'->>'error_message' LIKE '%xterms%') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' = '''[nan] not in index''') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' ~ 'unknown locations: [A-Z]{3}') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'KeyError' AND payload->'scenario'->>'error_message' ~ '^''[A-Z]{3}''$') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND payload->'scenario'->>'error_message' LIKE '%invalid-adult-passengers%') OR (type = 'scenario.failed' AND payload->'scenario'->>'error_type' = 'NothingFoundTravelPayouts' AND (payload->'scenario'->>'error_message' IS NULL OR (payload->'scenario'->>'error_message' NOT LIKE '%invalid-destination%' AND payload->'scenario'->>'error_message' NOT LIKE '%invalid-date%' AND payload->'scenario'->>'error_message' NOT LIKE '%invalid-adult-passengers%' AND payload->'scenario'->>'error_message' NOT LIKE '%unknown locations%'))) )) AS unresolved FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Системные предупреждения (плашки) — распределение по коду",
+      "description": "Каждое событие `system.warning.shown` логируется параллельно основному сценарию. Поле `data` = стабильный код (см. /opt/analytics-platform/docs/warning-codes.md).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Код",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT data AS \"Код\", count(*) AS \"Показано\" FROM events WHERE service IN ($service) AND type = 'system.warning.shown' AND $__timeFilter(received_at) GROUP BY data ORDER BY count(*) DESC;"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Последние системные предупреждения (с привязкой к запросу)",
+      "description": "Для каждой плашки видно request_id, чтобы открыть в табличке «Каждая failed-запись» или поднять полный сценарий по этому id.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 12
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Время"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Код"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "request_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 290
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at AS \"Время\", data AS \"Код\", request_id, payload->'scenario' AS \"Контекст\" FROM events WHERE service IN ($service) AND type = 'system.warning.shown' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
+        }
+      ]
+    }
+  ]
+}

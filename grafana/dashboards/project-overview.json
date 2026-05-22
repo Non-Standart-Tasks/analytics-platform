@@ -25,9 +25,29 @@
   },
   "panels": [
     {
+      "id": 100, "type": "stat", "title": "Поисков за неделю",
+      "description": "scenario.completed за последние 7 дней. Не зависит от time picker сверху.",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}}},
+      "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '7 days';"}]
+    },
+    {
+      "id": 101, "type": "stat", "title": "Поисков за месяц",
+      "description": "scenario.completed за последние 30 дней. Не зависит от time picker сверху.",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "purple"}}},
+      "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '30 days';"}]
+    },
+    {
       "id": 1, "type": "stat", "title": "Поисков за период",
       "description": "Количество завершённых пользовательских поисков (events.type = 'scenario.completed').",
-      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+      "gridPos": {"x": 0, "y": 4, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at);"}]
@@ -35,7 +55,7 @@
     {
       "id": 2, "type": "stat", "title": "Конверсия (выдан ≥1 билет)",
       "description": "% поисков, где юзеру показали хотя бы один билет: tickets_shown > 0.",
-      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+      "gridPos": {"x": 4, "y": 4, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "percent",
         "thresholds": {"mode": "absolute", "steps": [
@@ -45,14 +65,14 @@
     },
     {
       "id": 3, "type": "stat", "title": "Уникальных юзеров",
-      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+      "gridPos": {"x": 8, "y": 4, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_email') AS value FROM events WHERE service IN ($service) AND payload->'scenario'->>'user_email' IS NOT NULL AND $__timeFilter(received_at);"}]
     },
     {
       "id": 4, "type": "stat", "title": "Avg билетов на поиск",
-      "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+      "gridPos": {"x": 12, "y": 4, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"decimals": 1}},
       "targets": [{"refId": "A", "format": "table",
@@ -61,7 +81,7 @@
     {
       "id": 5, "type": "stat", "title": "Pipeline p95 (sec)",
       "description": "95-й перцентиль длительности всего поиска.",
-      "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+      "gridPos": {"x": 16, "y": 4, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "s",
         "thresholds": {"mode": "absolute", "steps": [
@@ -71,14 +91,14 @@
     },
     {
       "id": 6, "type": "stat", "title": "LLM-вызовов",
-      "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+      "gridPos": {"x": 20, "y": 4, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='llm.inference.completed' AND $__timeFilter(received_at);"}]
     },
     {
       "id": 7, "type": "timeseries", "title": "События по времени (по type, stacked)",
-      "gridPos": {"x": 0, "y": 4, "w": 16, "h": 8},
+      "gridPos": {"x": 0, "y": 8, "w": 16, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
       "targets": [{"refId": "A", "format": "time_series",
@@ -86,7 +106,7 @@
     },
     {
       "id": 8, "type": "bargauge", "title": "Топ event types",
-      "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "options": {
         "orientation": "horizontal",
@@ -101,28 +121,28 @@
     },
     {
       "id": 9, "type": "table", "title": "Breakdown: service × type × status",
-      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 9},
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 9},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT service AS \"Service\", type AS \"Type\", status AS \"Status\", count(*) AS \"Count\" FROM events WHERE service IN ($service) AND $__timeFilter(received_at) GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 50;"}]
     },
     {
       "id": 10, "type": "table", "title": "Последние события",
-      "gridPos": {"x": 12, "y": 12, "w": 12, "h": 9},
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 9},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", type AS \"Type\", status AS \"Status\", data AS \"Data\" FROM events WHERE service IN ($service) AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
     },
     {
       "id": 11, "type": "table", "title": "Failed events (детали)",
-      "gridPos": {"x": 0, "y": 21, "w": 24, "h": 8},
+      "gridPos": {"x": 0, "y": 25, "w": 24, "h": 8},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", type AS \"Type\", data AS \"Data\", payload::text AS \"Payload\" FROM events WHERE service IN ($service) AND status = 'failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"}]
     },
     {
       "id": 12, "type": "table", "title": "Последние поиски (scenario.completed)",
-      "gridPos": {"x": 0, "y": 29, "w": 24, "h": 10},
+      "gridPos": {"x": 0, "y": 33, "w": 24, "h": 10},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "description": "Только для проектов, шлющих type='scenario.completed' с payload.scenario (avia-style schema).",
       "targets": [{"refId": "A", "format": "table",

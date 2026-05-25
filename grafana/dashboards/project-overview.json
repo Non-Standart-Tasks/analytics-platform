@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 4,
   "refresh": "30s",
   "time": {
     "from": "now-24h",
@@ -58,7 +58,20 @@
           "format": "table",
           "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '7 days';"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
     },
     {
       "id": 101,
@@ -81,7 +94,20 @@
           "format": "table",
           "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '30 days';"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
     },
     {
       "id": 1,
@@ -104,7 +130,20 @@
           "format": "table",
           "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at);"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
     },
     {
       "id": 2,
@@ -171,7 +210,20 @@
           "format": "table",
           "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_email') AS value FROM events WHERE service IN ($service) AND payload->'scenario'->>'user_email' IS NOT NULL AND $__timeFilter(received_at);"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
     },
     {
       "id": 4,
@@ -189,7 +241,16 @@
       },
       "fieldConfig": {
         "defaults": {
-          "decimals": 1
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         }
       },
       "targets": [
@@ -265,7 +326,20 @@
           "format": "table",
           "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='llm.inference.completed' AND $__timeFilter(received_at);"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
     },
     {
       "id": 7,

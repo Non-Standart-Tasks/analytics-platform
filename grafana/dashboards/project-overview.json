@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 4,
+  "version": 5,
   "refresh": "30s",
   "time": {
     "from": "now-24h",
@@ -38,29 +38,39 @@
   },
   "panels": [
     {
-      "id": 100,
+      "id": 200,
       "type": "stat",
-      "title": "Поисков за неделю",
-      "description": "scenario.completed за последние 7 дней. Не зависит от time picker сверху.",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 12,
-        "h": 4
-      },
+      "title": "Поисков за день",
       "datasource": {
         "type": "postgres",
         "uid": "analytics-postgres"
       },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '7 days';"
-        }
-      ],
+      "description": "Кол-во scenario.completed за последние 24 часа",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -69,34 +79,110 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type = 'scenario.completed' AND received_at > now() - interval '24 hours';"
         }
-      }
+      ]
     },
     {
-      "id": 101,
+      "id": 202,
+      "type": "stat",
+      "title": "Поисков за неделю",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Кол-во scenario.completed за последние 7 дней",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type = 'scenario.completed' AND received_at > now() - interval '7 days';"
+        }
+      ]
+    },
+    {
+      "id": 204,
       "type": "stat",
       "title": "Поисков за месяц",
-      "description": "scenario.completed за последние 30 дней. Не зависит от time picker сверху.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Кол-во scenario.completed за последние 30 дней",
       "gridPos": {
         "x": 12,
         "y": 0,
-        "w": 12,
+        "w": 6,
         "h": 4
       },
-      "datasource": {
-        "type": "postgres",
-        "uid": "analytics-postgres"
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND received_at >= now() - interval '30 days';"
-        }
-      ],
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -105,45 +191,315 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type = 'scenario.completed' AND received_at > now() - interval '30 days';"
         }
-      }
+      ]
     },
     {
-      "id": 1,
+      "id": 206,
       "type": "stat",
-      "title": "Поисков за период",
-      "description": "Количество завершённых пользовательских поисков (events.type = 'scenario.completed').",
+      "title": "Уник. юзеров за неделю",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Уникальные email сотрудников за 7 дней",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_email') AS value FROM events WHERE service IN ($service) AND type = 'scenario.completed' AND payload->'scenario'->>'user_email' IS NOT NULL AND received_at > now() - interval '7 days';"
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "type": "stat",
+      "title": "Δ день vs вчера",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Прирост % vs предыдущих 24 часов",
       "gridPos": {
         "x": 0,
         "y": 4,
-        "w": 4,
-        "h": 4
+        "w": 6,
+        "h": 3
       },
-      "datasource": {
-        "type": "postgres",
-        "uid": "analytics-postgres"
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
       },
       "targets": [
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at);"
+          "rawSql": "SELECT ROUND(100.0 * (cur - prev) / NULLIF(prev, 0), 1) AS value FROM (   SELECT     count(*) FILTER (WHERE received_at > now() - interval '24 hours') AS cur,     count(*) FILTER (WHERE received_at <= now() - interval '24 hours'       AND received_at > now() - interval '48 hours') AS prev   FROM events   WHERE service IN ($service) AND type = 'scenario.completed' ) t;"
         }
-      ],
+      ]
+    },
+    {
+      "id": 203,
+      "type": "stat",
+      "title": "Δ неделя vs прошлой",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Прирост % vs предыдущей недели",
+      "gridPos": {
+        "x": 6,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
               }
             ]
-          }
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * (cur - prev) / NULLIF(prev, 0), 1) AS value FROM (   SELECT     count(*) FILTER (WHERE received_at > now() - interval '168 hours') AS cur,     count(*) FILTER (WHERE received_at <= now() - interval '168 hours'       AND received_at > now() - interval '336 hours') AS prev   FROM events   WHERE service IN ($service) AND type = 'scenario.completed' ) t;"
         }
-      }
+      ]
+    },
+    {
+      "id": 205,
+      "type": "stat",
+      "title": "Δ месяц vs прошлого",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Прирост % vs предыдущих 30 дней",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * (cur - prev) / NULLIF(prev, 0), 1) AS value FROM (   SELECT     count(*) FILTER (WHERE received_at > now() - interval '720 hours') AS cur,     count(*) FILTER (WHERE received_at <= now() - interval '720 hours'       AND received_at > now() - interval '1440 hours') AS prev   FROM events   WHERE service IN ($service) AND type = 'scenario.completed' ) t;"
+        }
+      ]
+    },
+    {
+      "id": 207,
+      "type": "stat",
+      "title": "Δ юзеров vs прошлой нед.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "description": "Прирост уникальных юзеров % vs предыдущей недели",
+      "gridPos": {
+        "x": 18,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * (cur - prev) / NULLIF(prev, 0), 1) AS value FROM (   SELECT     count(DISTINCT payload->'scenario'->>'user_email') FILTER (      WHERE received_at > now() - interval '7 days') AS cur,     count(DISTINCT payload->'scenario'->>'user_email') FILTER (      WHERE received_at <= now() - interval '7 days'       AND received_at > now() - interval '14 days') AS prev   FROM events WHERE service IN ($service) AND type = 'scenario.completed'     AND payload->'scenario'->>'user_email' IS NOT NULL ) t;"
+        }
+      ]
     },
     {
       "id": 2,
@@ -152,7 +508,7 @@
       "description": "% поисков, где юзеру показали хотя бы один билет: tickets_shown > 0.",
       "gridPos": {
         "x": 4,
-        "y": 4,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -191,47 +547,12 @@
       ]
     },
     {
-      "id": 3,
-      "type": "stat",
-      "title": "Уникальных юзеров",
-      "gridPos": {
-        "x": 8,
-        "y": 4,
-        "w": 4,
-        "h": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "analytics-postgres"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_email') AS value FROM events WHERE service IN ($service) AND payload->'scenario'->>'user_email' IS NOT NULL AND $__timeFilter(received_at);"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
       "id": 4,
       "type": "stat",
       "title": "Avg билетов на поиск",
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -268,7 +589,7 @@
       "description": "95-й перцентиль длительности всего поиска.",
       "gridPos": {
         "x": 16,
-        "y": 4,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -312,7 +633,7 @@
       "title": "LLM-вызовов",
       "gridPos": {
         "x": 20,
-        "y": 4,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -347,7 +668,7 @@
       "title": "События по времени (по type, stacked)",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 15,
         "w": 16,
         "h": 8
       },
@@ -379,7 +700,7 @@
       "title": "Топ event types",
       "gridPos": {
         "x": 16,
-        "y": 8,
+        "y": 15,
         "w": 8,
         "h": 8
       },
@@ -422,7 +743,7 @@
       "title": "Breakdown: service × type × status",
       "gridPos": {
         "x": 0,
-        "y": 16,
+        "y": 23,
         "w": 12,
         "h": 9
       },
@@ -444,7 +765,7 @@
       "title": "Последние события",
       "gridPos": {
         "x": 12,
-        "y": 16,
+        "y": 23,
         "w": 12,
         "h": 9
       },
@@ -466,7 +787,7 @@
       "title": "Failed events (детали)",
       "gridPos": {
         "x": 0,
-        "y": 25,
+        "y": 32,
         "w": 24,
         "h": 8
       },
@@ -541,7 +862,7 @@
       "title": "Последние поиски (scenario.completed)",
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 40,
         "w": 24,
         "h": 10
       },

@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 5,
+  "version": 6,
   "refresh": "30s",
   "time": {
     "from": "now-24h",
@@ -269,7 +269,7 @@
         "type": "postgres",
         "uid": "analytics-postgres"
       },
-      "description": "Прирост % vs предыдущих 24 часов",
+      "description": "Прирост % vs предыдущих 24 часов Если за предыдущий период данных нет (телеметрия включена 22.05), показывается «новое».",
       "gridPos": {
         "x": 0,
         "y": 4,
@@ -309,7 +309,8 @@
             ]
           },
           "unit": "percent",
-          "decimals": 1
+          "decimals": 1,
+          "noValue": "новое"
         },
         "overrides": []
       },
@@ -329,7 +330,7 @@
         "type": "postgres",
         "uid": "analytics-postgres"
       },
-      "description": "Прирост % vs предыдущей недели",
+      "description": "Прирост % vs предыдущей недели Если за предыдущий период данных нет (телеметрия включена 22.05), показывается «новое».",
       "gridPos": {
         "x": 6,
         "y": 4,
@@ -369,7 +370,8 @@
             ]
           },
           "unit": "percent",
-          "decimals": 1
+          "decimals": 1,
+          "noValue": "новое"
         },
         "overrides": []
       },
@@ -389,7 +391,7 @@
         "type": "postgres",
         "uid": "analytics-postgres"
       },
-      "description": "Прирост % vs предыдущих 30 дней",
+      "description": "Прирост % vs предыдущих 30 дней Если за предыдущий период данных нет (телеметрия включена 22.05), показывается «новое».",
       "gridPos": {
         "x": 12,
         "y": 4,
@@ -429,7 +431,8 @@
             ]
           },
           "unit": "percent",
-          "decimals": 1
+          "decimals": 1,
+          "noValue": "новое"
         },
         "overrides": []
       },
@@ -449,7 +452,7 @@
         "type": "postgres",
         "uid": "analytics-postgres"
       },
-      "description": "Прирост уникальных юзеров % vs предыдущей недели",
+      "description": "Прирост уникальных юзеров % vs предыдущей недели Если за предыдущий период данных нет (телеметрия включена 22.05), показывается «новое».",
       "gridPos": {
         "x": 18,
         "y": 4,
@@ -489,7 +492,8 @@
             ]
           },
           "unit": "percent",
-          "decimals": 1
+          "decimals": 1,
+          "noValue": "новое"
         },
         "overrides": []
       },

@@ -906,6 +906,56 @@
           }
         ]
       }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "AMA pipeline память (RSS MB per request)",
+      "description": "Per-request снапы RSS процесса arq-worker'а: before — до get_full_response, after — после, delta — сколько pipeline-call оставил в RAM. Поле ama_process_rss_*_mb из payload scenario.completed (см. AmaHelper._read_current_rss_mb). Linux only — dev-macOS дает 0.0, отфильтрован.",
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT e.received_at AS time, (e.payload->'scenario'->>'ama_process_rss_before_mb')::float AS \"before\", (e.payload->'scenario'->>'ama_process_rss_after_mb')::float AS \"after\", (e.payload->'scenario'->>'ama_process_rss_delta_mb')::float AS \"delta\" FROM events e WHERE e.service IN ($service) AND e.type IN ('scenario.completed', 'scenario.failed') AND e.payload->'scenario' ? 'ama_process_rss_delta_mb' AND (e.payload->'scenario'->>'ama_process_rss_after_mb')::float != 0 AND $__timeFilter(e.received_at) ORDER BY e.received_at;"
+        }
+      ]
     }
   ]
 }

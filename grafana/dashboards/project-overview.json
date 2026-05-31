@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 8,
+  "version": 9,
   "refresh": "30s",
   "time": {
     "from": "now-24h",
@@ -953,7 +953,7 @@
             "type": "postgres",
             "uid": "analytics-postgres"
           },
-          "rawSql": "SELECT e.received_at AS time, (e.payload->'scenario'->>'process_rss_mb')::float AS \"rss_mb\", e.payload->'scenario'->>'process_label' AS metric FROM events e WHERE e.service IN ($service) AND e.type = 'system.memory_snapshot' AND e.payload->'scenario' ? 'process_rss_mb' AND (e.payload->'scenario'->>'process_rss_mb')::float > 0 AND $__timeFilter(e.received_at) ORDER BY e.received_at;"
+          "rawSql": "SELECT e.received_at AS time, (e.payload->'scenario'->>'process_rss_mb')::float AS \"rss_mb\", e.payload->'scenario'->>'process_label' || ' (' || e.service || ')' AS metric FROM events e WHERE e.service IN ($service) AND e.type = 'system.memory_snapshot' AND e.payload->'scenario' ? 'process_rss_mb' AND (e.payload->'scenario'->>'process_rss_mb')::float > 0 AND $__timeFilter(e.received_at) ORDER BY e.received_at;"
         }
       ]
     }

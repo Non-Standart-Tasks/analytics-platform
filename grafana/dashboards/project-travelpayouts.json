@@ -1,91 +1,274 @@
 {
   "title": "Project HTTP health (provider calls)",
   "uid": "project-travelpayouts",
-  "tags": ["multi-service", "http", "telemetry"],
+  "tags": [
+    "legacy"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
-  "time": {"from": "now-24h", "to": "now"},
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
         "name": "service",
         "label": "Project",
         "type": "query",
-        "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+        "datasource": {
+          "type": "postgres",
+          "uid": "analytics-postgres"
+        },
         "query": "SELECT DISTINCT service FROM events WHERE type = 'http.request.sent' ORDER BY service;",
         "refresh": 1,
         "sort": 1,
         "multi": true,
         "includeAll": true,
-        "current": {"selected": false, "text": "All", "value": "$__all"}
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
   "panels": [
     {
-      "id": 1, "type": "stat", "title": "HTTP-запросов всего",
-      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at);"}]
+      "id": 1,
+      "type": "stat",
+      "title": "HTTP-запросов всего",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 2, "type": "stat", "title": "Success rate",
-      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "percent",
-        "thresholds": {"mode": "absolute", "steps": [{"color":"red","value":null},{"color":"orange","value":90},{"color":"green","value":98}]}}},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT (count(*) FILTER (WHERE status='success') * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at);"}]
+      "id": 2,
+      "type": "stat",
+      "title": "Success rate",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 90
+              },
+              {
+                "color": "green",
+                "value": 98
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (count(*) FILTER (WHERE status='success') * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 3, "type": "stat", "title": "Retry rate",
-      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "percent",
-        "thresholds": {"mode": "absolute", "steps": [{"color":"green","value":null},{"color":"orange","value":10},{"color":"red","value":30}]}}},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT (count(*) FILTER (WHERE (payload->'response'->>'attempt')::int > 1) * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at);"}]
+      "id": 3,
+      "type": "stat",
+      "title": "Retry rate",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (count(*) FILTER (WHERE (payload->'response'->>'attempt')::int > 1) * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 4, "type": "stat", "title": "p95 latency (sec)",
-      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "s"}},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT (percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'response'->>'duration_ms')::int) / 1000.0)::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND payload->'response'->>'duration_ms' IS NOT NULL AND $__timeFilter(received_at);"}]
+      "id": 4,
+      "type": "stat",
+      "title": "p95 latency (sec)",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'response'->>'duration_ms')::int) / 1000.0)::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND payload->'response'->>'duration_ms' IS NOT NULL AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 5, "type": "table", "title": "По endpoint",
-      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 7},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT service AS \"Service\", data AS \"Endpoint\", count(*) AS \"Запросов\", count(*) FILTER (WHERE status='success') AS \"OK\", count(*) FILTER (WHERE status='failed') AS \"Fail\", count(*) FILTER (WHERE (payload->'response'->>'attempt')::int > 1) AS \"Retries\", avg((payload->'response'->>'duration_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'response'->>'duration_ms')::int)::int AS \"p95 ms\" FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 3 DESC;"}]
+      "id": 5,
+      "type": "table",
+      "title": "По endpoint",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT service AS \"Service\", data AS \"Endpoint\", count(*) AS \"Запросов\", count(*) FILTER (WHERE status='success') AS \"OK\", count(*) FILTER (WHERE status='failed') AS \"Fail\", count(*) FILTER (WHERE (payload->'response'->>'attempt')::int > 1) AS \"Retries\", avg((payload->'response'->>'duration_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'response'->>'duration_ms')::int)::int AS \"p95 ms\" FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 3 DESC;"
+        }
+      ]
     },
     {
-      "id": 6, "type": "barchart", "title": "Status codes",
-      "gridPos": {"x": 0, "y": 11, "w": 12, "h": 7},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "options": {"orientation": "horizontal", "xField": "Запросов"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT COALESCE(payload->'response'->>'status_code', 'NULL') AS \"Code\", count(*) AS \"Запросов\" FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"}]
+      "id": 6,
+      "type": "barchart",
+      "title": "Status codes",
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Запросов"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COALESCE(payload->'response'->>'status_code', 'NULL') AS \"Code\", count(*) AS \"Запросов\" FROM events WHERE service IN ($service) AND type='http.request.sent' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
     },
     {
-      "id": 7, "type": "timeseries", "title": "Latency p95 во времени",
-      "gridPos": {"x": 12, "y": 11, "w": 12, "h": 7},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "ms"}},
-      "targets": [{"refId": "A", "format": "time_series",
-        "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, data AS metric, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'response'->>'duration_ms')::int) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND status='success' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+      "id": 7,
+      "type": "timeseries",
+      "title": "Latency p95 во времени",
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, data AS metric, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'response'->>'duration_ms')::int) AS value FROM events WHERE service IN ($service) AND type='http.request.sent' AND status='success' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"
+        }
+      ]
     },
     {
-      "id": 8, "type": "table", "title": "Последние failed-запросы",
-      "gridPos": {"x": 0, "y": 18, "w": 24, "h": 8},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Endpoint\", payload->'response'->>'status_code' AS \"Code\", payload->'response'->>'attempt' AS \"Attempt\", payload->'response'->>'duration_ms' AS \"ms\", payload->'response'->>'error' AS \"Ошибка\" FROM events WHERE service IN ($service) AND type='http.request.sent' AND status='failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"}]
+      "id": 8,
+      "type": "table",
+      "title": "Последние failed-запросы",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Endpoint\", payload->'response'->>'status_code' AS \"Code\", payload->'response'->>'attempt' AS \"Attempt\", payload->'response'->>'duration_ms' AS \"ms\", payload->'response'->>'error' AS \"Ошибка\" FROM events WHERE service IN ($service) AND type='http.request.sent' AND status='failed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
+        }
+      ]
     }
   ]
 }

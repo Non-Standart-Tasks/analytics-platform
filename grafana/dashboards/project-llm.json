@@ -1,90 +1,259 @@
 {
   "title": "Project LLM — tokens & latency (any service)",
   "uid": "project-llm",
-  "tags": ["multi-service", "llm", "telemetry"],
+  "tags": [
+    "legacy"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
-  "time": {"from": "now-24h", "to": "now"},
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
         "name": "service",
         "label": "Project",
         "type": "query",
-        "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+        "datasource": {
+          "type": "postgres",
+          "uid": "analytics-postgres"
+        },
         "query": "SELECT DISTINCT service FROM events WHERE type = 'llm.inference.completed' ORDER BY service;",
         "refresh": 1,
         "sort": 1,
         "multi": true,
         "includeAll": true,
-        "current": {"selected": false, "text": "All", "value": "$__all"}
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
   "panels": [
     {
-      "id": 1, "type": "stat", "title": "LLM-вызовов всего",
-      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"}]
+      "id": 1,
+      "type": "stat",
+      "title": "LLM-вызовов всего",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 2, "type": "stat", "title": "Сумма токенов",
-      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "short"}},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT sum((payload->'llm_tokens'->>'total_tokens')::int) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"}]
+      "id": 2,
+      "type": "stat",
+      "title": "Сумма токенов",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sum((payload->'llm_tokens'->>'total_tokens')::int) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 3, "type": "stat", "title": "Avg токенов на вызов",
-      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"}]
+      "id": 3,
+      "type": "stat",
+      "title": "Avg токенов на вызов",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 4, "type": "stat", "title": "LLM failure rate",
-      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "percent",
-        "thresholds": {"mode": "absolute", "steps": [
-          {"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 5}]}}},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT (count(*) FILTER (WHERE status = 'failed') * 100.0 / NULLIF(count(*),0))::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"}]
+      "id": 4,
+      "type": "stat",
+      "title": "LLM failure rate",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (count(*) FILTER (WHERE status = 'failed') * 100.0 / NULLIF(count(*),0))::numeric(10,2) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at);"
+        }
+      ]
     },
     {
-      "id": 5, "type": "table", "title": "По модели: вызовов / токенов / latency",
-      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 7},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT service AS \"Service\", payload->'llm_tokens'->>'model' AS \"Модель\", count(*) AS \"Вызовов\", sum((payload->'llm_tokens'->>'total_tokens')::int) AS \"Σ токенов\", avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS \"Avg токенов\", avg((payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"p95 ms\" FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 4 DESC NULLS LAST;"}]
+      "id": 5,
+      "type": "table",
+      "title": "По модели: вызовов / токенов / latency",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT service AS \"Service\", payload->'llm_tokens'->>'model' AS \"Модель\", count(*) AS \"Вызовов\", sum((payload->'llm_tokens'->>'total_tokens')::int) AS \"Σ токенов\", avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS \"Avg токенов\", avg((payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"p95 ms\" FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 4 DESC NULLS LAST;"
+        }
+      ]
     },
     {
-      "id": 6, "type": "table", "title": "По шагу пайплайна (data)",
-      "gridPos": {"x": 0, "y": 11, "w": 24, "h": 8},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT service AS \"Service\", data AS \"Шаг\", count(*) AS \"Вызовов\", count(*) FILTER (WHERE status = 'failed') AS \"Fail\", avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS \"Avg токенов\", avg((payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"p95 ms\" FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 3 DESC;"}]
+      "id": 6,
+      "type": "table",
+      "title": "По шагу пайплайна (data)",
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT service AS \"Service\", data AS \"Шаг\", count(*) AS \"Вызовов\", count(*) FILTER (WHERE status = 'failed') AS \"Fail\", avg((payload->'llm_tokens'->>'total_tokens')::int)::int AS \"Avg токенов\", avg((payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"Avg ms\", percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int)::int AS \"p95 ms\" FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 3 DESC;"
+        }
+      ]
     },
     {
-      "id": 7, "type": "timeseries", "title": "LLM latency p95 по шагам",
-      "gridPos": {"x": 0, "y": 19, "w": 12, "h": 8},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "ms"}},
-      "targets": [{"refId": "A", "format": "time_series",
-        "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, data AS metric, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND status = 'success' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+      "id": 7,
+      "type": "timeseries",
+      "title": "LLM latency p95 по шагам",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, data AS metric, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'llm_tokens'->>'inference_time_ms')::int) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND status = 'success' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"
+        }
+      ]
     },
     {
-      "id": 8, "type": "timeseries", "title": "Токены по времени (sum, stacked by model)",
-      "gridPos": {"x": 12, "y": 19, "w": 12, "h": 8},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
-      "targets": [{"refId": "A", "format": "time_series",
-        "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, COALESCE(payload->'llm_tokens'->>'model', 'unknown') AS metric, sum((payload->'llm_tokens'->>'total_tokens')::int) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"}]
+      "id": 8,
+      "type": "timeseries",
+      "title": "Токены по времени (sum, stacked by model)",
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(received_at, $__interval) AS time, COALESCE(payload->'llm_tokens'->>'model', 'unknown') AS metric, sum((payload->'llm_tokens'->>'total_tokens')::int) AS value FROM events WHERE service IN ($service) AND type = 'llm.inference.completed' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,60 @@
+{
+  "title": "Project Load (any service)",
+  "uid": "project-load",
+  "tags": ["multi-service", "telemetry", "load"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Project",
+        "type": "query",
+        "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+        "query": "SELECT DISTINCT service FROM events ORDER BY service;",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {"selected": false, "text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Память процессов (RSS MB, periodic snapshot)",
+      "description": "Periodic snapshot RSS-процессов (по линии на каждый process_label: arq-worker, api). Эмиттится фоновым sampler'ом каждые 600 сек независимо от user-трафика. Источник — payload.scenario.process_rss_mb из system.memory_snapshot (telemetry_client.memory_sampler). Linux only — dev-macOS даёт 0.0, отфильтрован.",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 10},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "desc"},
+        "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+          "rawSql": "SELECT e.received_at AS time, (e.payload->'scenario'->>'process_rss_mb')::float AS \"rss_mb\", e.payload->'scenario'->>'process_label' || ' (' || e.service || ')' AS metric FROM events e WHERE e.service IN ($service) AND e.type = 'system.memory_snapshot' AND e.payload->'scenario' ? 'process_rss_mb' AND (e.payload->'scenario'->>'process_rss_mb')::float > 0 AND $__timeFilter(e.received_at) ORDER BY e.received_at;"
+        }
+      ]
+    }
+  ]
+}

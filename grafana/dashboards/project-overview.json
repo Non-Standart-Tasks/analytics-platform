@@ -508,8 +508,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Конверсия (выдан ≥1 билет)",
-      "description": "% поисков, где юзеру показали хотя бы один билет: tickets_shown > 0.",
+      "title": "Конверсия (выдан ≥1 билет) — AMA",
+      "description": "% поисков AMA_avia_project, где юзеру показали хотя бы один билет (tickets_shown > 0). Привязано только к AMA_avia_project, дропдаун Project не влияет.",
       "gridPos": {
         "x": 0,
         "y": 7,
@@ -546,7 +546,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT (count(*) FILTER (WHERE (payload->'scenario'->>'tickets_shown')::int > 0) * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at);"
+          "rawSql": "SELECT (count(*) FILTER (WHERE (payload->'scenario'->>'tickets_shown')::int > 0) * 100.0 / NULLIF(count(*),0))::numeric(5,1) AS value FROM events WHERE service = 'AMA_avia_project' AND type='scenario.completed' AND $__timeFilter(received_at);"
         }
       ]
     },

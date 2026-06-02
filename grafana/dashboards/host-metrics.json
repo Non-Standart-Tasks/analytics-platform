@@ -1,10 +1,10 @@
 {
-  "title": "Host Metrics",
+  "title": "Server Load",
   "uid": "host-metrics",
-  "tags": ["infrastructure", "telemetry"],
+  "tags": ["infrastructure", "load", "telemetry"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {"from": "now-24h", "to": "now"},
   "templating": {"list": []},
@@ -88,6 +88,26 @@
       "fieldConfig": {"defaults": {"custom": {"lineWidth": 1, "fillOpacity": 5}}},
       "targets": [{"refId": "A", "format": "time_series",
         "rawSql": "SELECT received_at AS time, (payload->'scenario'->>'processes')::int AS \"processes\" FROM events WHERE service='infrastructure' AND type='system.host_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Staging RSS Memory",
+      "description": "RSS-память процессов avia_system (arq-worker, api) по данным system.memory_snapshot. Эмиттится фоновым sampler'ом каждые 600 сек.",
+      "gridPos": {"x": 0, "y": 23, "w": 12, "h": 10},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "spanNulls": false}}},
+      "options": {"tooltip": {"mode": "multi", "sort": "desc"}, "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT e.received_at AS time, (e.payload->'scenario'->>'process_rss_mb')::float AS \"rss_mb\", e.payload->'scenario'->>'process_label' AS metric FROM events e WHERE e.service = 'avia_system' AND e.type = 'system.memory_snapshot' AND e.payload->'scenario' ? 'process_rss_mb' AND (e.payload->'scenario'->>'process_rss_mb')::float > 0 AND $__timeFilter(e.received_at) ORDER BY e.received_at;"}]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Prod RSS Memory",
+      "description": "RSS-память процессов AMA_avia_project (arq-worker, api) по данным system.memory_snapshot. Эмиттится фоновым sampler'ом каждые 600 сек.",
+      "gridPos": {"x": 12, "y": 23, "w": 12, "h": 10},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "spanNulls": false}}},
+      "options": {"tooltip": {"mode": "multi", "sort": "desc"}, "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT e.received_at AS time, (e.payload->'scenario'->>'process_rss_mb')::float AS \"rss_mb\", e.payload->'scenario'->>'process_label' AS metric FROM events e WHERE e.service = 'AMA_avia_project' AND e.type = 'system.memory_snapshot' AND e.payload->'scenario' ? 'process_rss_mb' AND (e.payload->'scenario'->>'process_rss_mb')::float > 0 AND $__timeFilter(e.received_at) ORDER BY e.received_at;"}]
     }
   ]
 }

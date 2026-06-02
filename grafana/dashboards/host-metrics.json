@@ -4,14 +4,14 @@
   "tags": ["infrastructure", "load", "telemetry"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": {"from": "now-24h", "to": "now"},
   "templating": {"list": []},
   "panels": [
     {
       "id": 1, "type": "stat", "title": "Load (1 min)",
-      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"decimals": 2,
         "thresholds": {"mode": "absolute", "steps": [
@@ -21,7 +21,7 @@
     },
     {
       "id": 2, "type": "stat", "title": "Memory used",
-      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1,
         "thresholds": {"mode": "absolute", "steps": [
@@ -31,7 +31,7 @@
     },
     {
       "id": 3, "type": "stat", "title": "Disk used (/)",
-      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "percent",
         "thresholds": {"mode": "absolute", "steps": [
@@ -41,7 +41,7 @@
     },
     {
       "id": 4, "type": "stat", "title": "Swap used",
-      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1,
         "thresholds": {"mode": "absolute", "steps": [
@@ -51,21 +51,21 @@
     },
     {
       "id": 5, "type": "stat", "title": "Processes",
-      "gridPos": {"x": 0, "y": 4, "w": 6, "h": 3},
+      "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT (payload->'scenario'->>'processes')::int AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
     },
     {
       "id": 6, "type": "stat", "title": "Users logged",
-      "gridPos": {"x": 6, "y": 4, "w": 6, "h": 3},
+      "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "SELECT (payload->'scenario'->>'users_logged')::int AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
     },
     {
       "id": 7, "type": "timeseries", "title": "Load average (1 / 5 / 15 min)",
-      "gridPos": {"x": 0, "y": 7, "w": 12, "h": 9},
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 9},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"decimals": 2, "custom": {"lineWidth": 1, "fillOpacity": 5}}},
       "options": {"legend": {"showLegend": true, "placement": "bottom"}},
@@ -74,7 +74,7 @@
     },
     {
       "id": 8, "type": "timeseries", "title": "Memory / Swap / Disk used %",
-      "gridPos": {"x": 12, "y": 7, "w": 12, "h": 9},
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 9},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "min": 0, "max": 100, "custom": {"lineWidth": 1, "fillOpacity": 5}}},
       "options": {"legend": {"showLegend": true, "placement": "bottom"}},
@@ -83,7 +83,7 @@
     },
     {
       "id": 9, "type": "timeseries", "title": "Processes",
-      "gridPos": {"x": 0, "y": 16, "w": 24, "h": 7},
+      "gridPos": {"x": 0, "y": 13, "w": 24, "h": 7},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"custom": {"lineWidth": 1, "fillOpacity": 5}}},
       "targets": [{"refId": "A", "format": "time_series",
@@ -91,8 +91,8 @@
     },
     {
       "id": 10, "type": "timeseries", "title": "Staging RSS Memory",
-      "description": "RSS-память процессов avia_system (arq-worker, api) по данным system.memory_snapshot. Эмиттится фоновым sampler'ом каждые 600 сек.",
-      "gridPos": {"x": 0, "y": 23, "w": 12, "h": 10},
+      "description": "RSS-память процессов avia_system (arq-worker, api). Эмиттится фоновым sampler'ом каждые 600 сек.",
+      "gridPos": {"x": 0, "y": 20, "w": 12, "h": 9},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "spanNulls": false}}},
       "options": {"tooltip": {"mode": "multi", "sort": "desc"}, "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}},
@@ -101,8 +101,8 @@
     },
     {
       "id": 11, "type": "timeseries", "title": "Prod RSS Memory",
-      "description": "RSS-память процессов AMA_avia_project (arq-worker, api) по данным system.memory_snapshot. Эмиттится фоновым sampler'ом каждые 600 сек.",
-      "gridPos": {"x": 12, "y": 23, "w": 12, "h": 10},
+      "description": "RSS-память процессов AMA_avia_project (arq-worker, api). Эмиттится фоновым sampler'ом каждые 600 сек.",
+      "gridPos": {"x": 12, "y": 20, "w": 12, "h": 9},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "auto", "spanNulls": false}}},
       "options": {"tooltip": {"mode": "multi", "sort": "desc"}, "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}},

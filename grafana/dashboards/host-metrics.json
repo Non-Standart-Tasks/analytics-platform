@@ -1,0 +1,93 @@
+{
+  "title": "Host Metrics",
+  "uid": "host-metrics",
+  "tags": ["infrastructure", "telemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Load (1 min)",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"decimals": 2,
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 4}, {"color": "red", "value": 8}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'load_1')::float AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Memory used",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1,
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 70}, {"color": "red", "value": 90}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'memory_used_pct')::float AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Disk used (/)",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent",
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'disk_used_pct')::float AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Swap used",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1,
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 50}, {"color": "red", "value": 80}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'swap_used_pct')::float AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Processes",
+      "gridPos": {"x": 0, "y": 4, "w": 6, "h": 3},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'processes')::int AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
+    },
+    {
+      "id": 6, "type": "stat", "title": "Users logged",
+      "gridPos": {"x": 6, "y": 4, "w": 6, "h": 3},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "SELECT (payload->'scenario'->>'users_logged')::int AS value FROM events WHERE service='infrastructure' AND type='system.host_snapshot' ORDER BY received_at DESC LIMIT 1;"}]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Load average (1 / 5 / 15 min)",
+      "gridPos": {"x": 0, "y": 7, "w": 12, "h": 9},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"decimals": 2, "custom": {"lineWidth": 1, "fillOpacity": 5}}},
+      "options": {"legend": {"showLegend": true, "placement": "bottom"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT received_at AS time, (payload->'scenario'->>'load_1')::float AS \"load 1m\", (payload->'scenario'->>'load_5')::float AS \"load 5m\", (payload->'scenario'->>'load_15')::float AS \"load 15m\" FROM events WHERE service='infrastructure' AND type='system.host_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Memory / Swap / Disk used %",
+      "gridPos": {"x": 12, "y": 7, "w": 12, "h": 9},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "min": 0, "max": 100, "custom": {"lineWidth": 1, "fillOpacity": 5}}},
+      "options": {"legend": {"showLegend": true, "placement": "bottom"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT received_at AS time, (payload->'scenario'->>'memory_used_pct')::float AS \"memory\", (payload->'scenario'->>'swap_used_pct')::float AS \"swap\", (payload->'scenario'->>'disk_used_pct')::float AS \"disk\" FROM events WHERE service='infrastructure' AND type='system.host_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Processes",
+      "gridPos": {"x": 0, "y": 16, "w": 24, "h": 7},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"custom": {"lineWidth": 1, "fillOpacity": 5}}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT received_at AS time, (payload->'scenario'->>'processes')::int AS \"processes\" FROM events WHERE service='infrastructure' AND type='system.host_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
+    }
+  ]
+}

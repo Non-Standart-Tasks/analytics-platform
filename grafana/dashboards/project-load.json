@@ -12,7 +12,7 @@
     {
       "id": 1,
       "type": "timeseries",
-      "title": "avia_system — RSS memory",
+      "title": "Staging RSS Memory",
       "description": "Periodic snapshot RSS-процессов (по линии на каждый process_label: arq-worker, api). Эмиттится фоновым sampler'ом каждые 600 сек. Источник — payload.scenario.process_rss_mb из system.memory_snapshot.",
       "gridPos": {"x": 0, "y": 0, "w": 12, "h": 10},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
@@ -38,7 +38,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "AMA_avia_project — RSS memory",
+      "title": "Prod RSS Memory",
       "description": "Periodic snapshot RSS-процессов (по линии на каждый process_label). Эмиттится фоновым sampler'ом каждые 600 сек. Источник — payload.scenario.process_rss_mb из system.memory_snapshot.",
       "gridPos": {"x": 12, "y": 0, "w": 12, "h": 10},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},

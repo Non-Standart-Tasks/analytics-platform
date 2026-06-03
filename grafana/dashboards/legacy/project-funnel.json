@@ -1,5 +1,5 @@
 {
-  "title": "Project Funnel (raw → merged → viable → tickets)",
+  "title": "Project Funnel (raw → merged → before_llm → after_llm → ott → tickets)",
   "uid": "project-funnel",
   "tags": [
     "legacy"
@@ -167,7 +167,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT '1. Raw proposals' AS stage, avg((payload->'scenario'->>'raw_proposals_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '2. Merged with AMA' AS stage, avg((payload->'scenario'->>'merged_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '3. Viable (rec engine)' AS stage, avg((payload->'scenario'->>'viable_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '4. Tickets shown' AS stage, avg((payload->'scenario'->>'tickets_shown')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY 1;"
+          "rawSql": "SELECT '1. Raw proposals' AS stage, avg((payload->'scenario'->>'raw_proposals_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '2. Merged (AMA offers)' AS stage, avg((payload->'scenario'->>'merged_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '3. Merged pool (TP+AMA)' AS stage, avg((payload->'scenario'->>'merged_pool_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '4. Before LLM (code-filters)' AS stage, avg((payload->'scenario'->>'before_llm_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '5. After LLM' AS stage, avg((payload->'scenario'->>'after_llm_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '6. After OTT whitelist' AS stage, avg((payload->'scenario'->>'after_ott_whitelist_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '7. Tickets shown' AS stage, avg((payload->'scenario'->>'tickets_shown')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY 1;"
         }
       ]
     },
@@ -216,14 +216,14 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", (payload->'scenario'->>'merged_count')::int AS \"Merged\", (payload->'scenario'->>'viable_count')::int AS \"Viable\", (payload->'scenario'->>'tickets_shown')::int AS \"Tickets\", CASE WHEN (payload->'scenario'->>'raw_proposals_count')::int > 0 THEN round(100.0 * (payload->'scenario'->>'tickets_shown')::int / (payload->'scenario'->>'raw_proposals_count')::int, 2) END AS \"% конв.\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
+          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", (payload->'scenario'->>'merged_count')::int AS \"AMA\", (payload->'scenario'->>'merged_pool_count')::int AS \"Pool\", (payload->'scenario'->>'before_llm_count')::int AS \"BeforeLLM\", (payload->'scenario'->>'after_llm_count')::int AS \"AfterLLM\", (payload->'scenario'->>'after_ott_whitelist_count')::int AS \"AfterOTT\", (payload->'scenario'->>'tickets_shown')::int AS \"Tickets\", CASE WHEN (payload->'scenario'->>'raw_proposals_count')::int > 0 THEN round(100.0 * (payload->'scenario'->>'tickets_shown')::int / (payload->'scenario'->>'raw_proposals_count')::int, 2) END AS \"% конв.\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
         }
       ]
     },
     {
       "id": 8,
       "type": "table",
-      "title": "Поиски с 0 viable (фильтры всё съели)",
+      "title": "tickets=0: где обрыв воронки (причина)",
       "gridPos": {
         "x": 0,
         "y": 22,
@@ -238,7 +238,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", (payload->'scenario'->>'merged_count')::int AS \"Merged\", (payload->'scenario'->>'nonstop_filter_success')::text AS \"nonstop_ok\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND (payload->'scenario'->>'viable_count')::int = 0 AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
+          "rawSql": "SELECT received_at AS \"Время\", concat(payload->'scenario'->>'origin','-',payload->'scenario'->>'destination') AS \"Маршрут\", (payload->'scenario'->>'merged_pool_count')::int AS \"Pool\", (payload->'scenario'->>'before_llm_count')::int AS \"BeforeLLM\", (payload->'scenario'->>'after_llm_count')::int AS \"AfterLLM\", (payload->'scenario'->>'after_ott_whitelist_count')::int AS \"AfterOTT\", CASE   WHEN payload->'scenario'->>'before_llm_count' IS NULL THEN '(до funnel-деплоя)'   WHEN (payload->'scenario'->>'merged_pool_count')::int = 0 THEN 'no_data (нет proposals)'   WHEN (payload->'scenario'->>'before_llm_count')::int = 0 THEN 'code-filter (killer/даты)'   WHEN (payload->'scenario'->>'after_llm_count')::int = 0 THEN 'LLM-killer'   WHEN (payload->'scenario'->>'after_ott_whitelist_count')::int = 0 THEN 'OTT-whitelist (structural)'   ELSE 'render/ranking' END AS \"Причина\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0 AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
         }
       ]
     }

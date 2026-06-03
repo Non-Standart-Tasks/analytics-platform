@@ -1,0 +1,260 @@
+{
+  "title": "CitySignal — Overview",
+  "uid": "citysignal-overview",
+  "tags": ["citysignal", "telemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Events (24h)",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS events FROM events WHERE service='citysignal' AND received_at > NOW() - INTERVAL '24 hours';",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Active sessions (5m)",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(DISTINCT request_id) AS sessions FROM events WHERE service='citysignal' AND received_at > NOW() - INTERVAL '5 minutes';",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Unique TG users (24h)",
+      "description": "Distinct Telegram user_id values from scenario.user_id over the last 24h. Web-only sessions (no init_data) aren't counted — open in @citysignalllbot to show up here.",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_id') AS users FROM events WHERE service='citysignal' AND received_at > NOW() - INTERVAL '24 hours' AND payload->'scenario'->>'user_id' IS NOT NULL;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Errors (24h)",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS errors FROM events WHERE service='citysignal' AND received_at > NOW() - INTERVAL '24 hours' AND (type LIKE 'error.%' OR status='error');",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Events per minute",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "drawStyle": "line" }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('minute', received_at) AS time, type AS metric, count(*) AS value FROM events WHERE service='citysignal' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Swipe Train funnel",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 12 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "orientation": "horizontal" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "legend": { "showLegend": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH events_window AS (SELECT * FROM events WHERE service='citysignal' AND $__timeFilter(received_at)) SELECT step AS metric, n AS value FROM (VALUES ('1. landed (page.view)', (SELECT count(DISTINCT request_id) FROM events_window WHERE type='page.view' AND payload->'scenario'->>'route'='/pipe-swipe-train')), ('2. saw a card', (SELECT count(DISTINCT request_id) FROM events_window WHERE type='swipe_train.card.view')), ('3. swiped at least once', (SELECT count(DISTINCT request_id) FROM events_window WHERE type IN ('swipe_train.card.like','swipe_train.card.skip'))), ('4. liked at least once', (SELECT count(DISTINCT request_id) FROM events_window WHERE type='swipe_train.card.like')), ('5. finished deck', (SELECT count(DISTINCT request_id) FROM events_window WHERE type='swipe_train.deck.complete'))) AS t(step, n) WHERE n IS NOT NULL;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Top liked categories",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "options": {
+        "orientation": "horizontal",
+        "legend": { "showLegend": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT payload->'scenario'->>'primary_tag' AS metric, count(*) AS value FROM events WHERE service='citysignal' AND type='swipe_train.card.like' AND $__timeFilter(received_at) AND payload->'scenario'->>'primary_tag' IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 12;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Quiz funnel",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "options": {
+        "orientation": "horizontal",
+        "legend": { "showLegend": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH ew AS (SELECT * FROM events WHERE service='citysignal' AND $__timeFilter(received_at)) SELECT step AS metric, n AS value FROM (VALUES ('Q1 view', (SELECT count(DISTINCT request_id) FROM ew WHERE type='quiz.step.view' AND (payload->'scenario'->>'step')::int=0)), ('Q2 view', (SELECT count(DISTINCT request_id) FROM ew WHERE type='quiz.step.view' AND (payload->'scenario'->>'step')::int=1)), ('Q3 view', (SELECT count(DISTINCT request_id) FROM ew WHERE type='quiz.step.view' AND (payload->'scenario'->>'step')::int=2)), ('Q4 view', (SELECT count(DISTINCT request_id) FROM ew WHERE type='quiz.step.view' AND (payload->'scenario'->>'step')::int=3)), ('complete', (SELECT count(DISTINCT request_id) FROM ew WHERE type='quiz.complete'))) AS t(step, n) WHERE n IS NOT NULL;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Top routes (page.view)",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT payload->'scenario'->>'route' AS route, count(*) AS views, count(DISTINCT request_id) AS sessions FROM events WHERE service='citysignal' AND type='page.view' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 25;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Recent errors",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at AS time, type, payload->'scenario'->>'route' AS route, COALESCE(payload->'scenario'->>'message', data) AS message FROM events WHERE service='citysignal' AND (type LIKE 'error.%' OR status='error') AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "LCP p75 by route",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 0, "y": 28, "w": 16, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "drawStyle": "line" } }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('minute', received_at) AS time, payload->'scenario'->>'route' AS metric, percentile_cont(0.75) WITHIN GROUP (ORDER BY (payload->'scenario'->>'value_ms')::numeric) AS value FROM events WHERE service='citysignal' AND type='perf.lcp' AND $__timeFilter(received_at) AND payload->'scenario'->>'value_ms' IS NOT NULL GROUP BY 1, 2 ORDER BY 1;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Top event types",
+      "datasource": { "type": "postgres", "uid": "analytics-postgres" },
+      "gridPos": { "x": 16, "y": 28, "w": 8, "h": 8 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT type, count(*) AS n FROM events WHERE service='citysignal' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC LIMIT 30;",
+          "datasource": { "type": "postgres", "uid": "analytics-postgres" }
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "title": "SoK Funnel (retrieved → dedup → sources_shown → used)",
   "uid": "sok-funnel",
   "tags": [
-    "legacy"
+    "sok"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

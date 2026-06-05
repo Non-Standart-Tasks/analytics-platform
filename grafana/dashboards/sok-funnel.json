@@ -1,0 +1,246 @@
+{
+  "title": "SoK Funnel (retrieved → dedup → sources_shown → used)",
+  "uid": "sok-funnel",
+  "tags": [
+    "legacy"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Project",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "analytics-postgres"
+        },
+        "query": "SELECT DISTINCT service FROM events WHERE type = 'scenario.completed' ORDER BY service;",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "sok_search",
+          "value": "sok_search",
+          "selected": true
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "1. Retrieved",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT avg((payload->'scenario'->>'retrieved_final')::int)::int AS \"1. Retrieved\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "2. После dedup",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT avg((payload->'scenario'->>'dedup_post')::int)::int AS \"2. После dedup\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "3. Источников показано",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT avg((payload->'scenario'->>'sources_shown')::int)::int AS \"3. Источников показано\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "4. Источников использовано",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 3
+              },
+              {
+                "color": "green",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT avg((payload->'scenario'->>'sources_used')::int)::int AS \"4. Источников использовано\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Воронка средних значений",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "avg"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT '1. Retrieved' AS stage, avg((payload->'scenario'->>'retrieved_final')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '2. После dedup' AS stage, avg((payload->'scenario'->>'dedup_post')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '3. Источников показано' AS stage, avg((payload->'scenario'->>'sources_shown')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '4. Источников использовано' AS stage, avg((payload->'scenario'->>'sources_used')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "% Conversion: ответ с источниками",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT round(100.0 * count(*) FILTER (WHERE (payload->'scenario'->>'sources_used')::int > 0) / NULLIF(count(*),0), 1) AS conv FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Per-search funnel",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", payload->'scenario'->>'answer_path' AS \"Path\", (payload->'scenario'->>'retrieved_final')::int AS \"Retrieved\", (payload->'scenario'->>'dedup_post')::int AS \"Dedup\", (payload->'scenario'->>'sources_shown')::int AS \"Shown\", (payload->'scenario'->>'sources_used')::int AS \"Used\", round((payload->'scenario'->>'top_score')::numeric,3) AS \"TopScore\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "sources_used=0: где обрыв (причина)",
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT received_at AS \"Время\", payload->'scenario'->>'user_email' AS \"Email\", data AS \"Запрос\", (payload->'scenario'->>'retrieved_final')::int AS \"Retrieved\", (payload->'scenario'->>'dedup_post')::int AS \"Dedup\", (payload->'scenario'->>'sources_shown')::int AS \"Shown\", CASE   WHEN (payload->'scenario'->>'retrieved_final')::int = 0 THEN 'no_documents (retrieval пуст)'   WHEN payload->'scenario'->>'early_return_reason' IS NOT NULL THEN payload->'scenario'->>'early_return_reason'   WHEN (payload->'scenario'->>'sources_shown')::int = 0 THEN 'all_filtered (dedup/threshold)'   ELSE 'llm_no_citation (ответ без ссылок)' END AS \"Причина\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND (payload->'scenario'->>'sources_used')::int = 0 AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
+        }
+      ]
+    }
+  ],
+  "id": null
+}

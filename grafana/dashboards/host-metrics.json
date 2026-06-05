@@ -149,25 +149,6 @@
       "options": {"showHeader": true, "footer": {"show": false}},
       "targets": [{"refId": "A", "format": "table",
         "rawSql": "WITH latest AS (SELECT DISTINCT ON (data) data, payload, received_at FROM events WHERE service='infrastructure' AND type='system.docker_snapshot' AND received_at > now() - interval '5 minutes' ORDER BY data, received_at DESC) SELECT data AS \"Container\", payload->'scenario'->>'image' AS \"Image\", (payload->'scenario'->>'cpu_pct')::float AS \"CPU %\", (payload->'scenario'->>'mem_pct')::float AS \"Mem %\", payload->'scenario'->>'mem_usage' AS \"Mem\", payload->'scenario'->>'net_io' AS \"Net I/O\", payload->'scenario'->>'block_io' AS \"Block I/O\", (payload->'scenario'->>'pids')::int AS \"PIDs\" FROM latest ORDER BY (payload->'scenario'->>'mem_pct')::float DESC;"}]
-    },
-    {
-      "id": 17, "type": "timeseries", "title": "CPU % по контейнерам",
-      "description": "Все контейнеры. Лучше скрывать ненужные линии в легенде (alt+click).",
-      "gridPos": {"x": 0, "y": 47, "w": 12, "h": 10},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never"}}},
-      "options": {"tooltip": {"mode": "multi", "sort": "desc"}, "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}},
-      "targets": [{"refId": "A", "format": "time_series",
-        "rawSql": "SELECT received_at AS time, data AS metric, (payload->'scenario'->>'cpu_pct')::float AS value FROM events WHERE service='infrastructure' AND type='system.docker_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
-    },
-    {
-      "id": 18, "type": "timeseries", "title": "Mem % по контейнерам",
-      "gridPos": {"x": 12, "y": 47, "w": 12, "h": 10},
-      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never"}}},
-      "options": {"tooltip": {"mode": "multi", "sort": "desc"}, "legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}},
-      "targets": [{"refId": "A", "format": "time_series",
-        "rawSql": "SELECT received_at AS time, data AS metric, (payload->'scenario'->>'mem_pct')::float AS value FROM events WHERE service='infrastructure' AND type='system.docker_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
     }
   ]
 }

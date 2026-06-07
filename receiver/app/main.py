@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.events import router as events_router
+from app.api.stats import router as stats_router
 from app.ingest import ingest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -37,3 +38,4 @@ app.add_middleware(
 )
 
 app.include_router(events_router)
+app.include_router(stats_router)

@@ -1,0 +1,74 @@
+{
+  "title": "Proxies (TTL countdown)",
+  "uid": "proxies",
+  "tags": ["infrastructure", "proxies"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {"from": "now-7d", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {"id": 1, "type": "stat", "title": "Прокси всего",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "WITH latest AS (SELECT DISTINCT ON (data) data, payload FROM events WHERE service='infrastructure' AND type='system.proxy_snapshot' AND received_at > now() - interval '3 hours' ORDER BY data, received_at DESC) SELECT count(*)::int AS value FROM latest;"}]
+    },
+    {"id": 2, "type": "stat", "title": "Истечёт за 24 часа",
+      "description": "Прокси, у которых осталось <1 дня.",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [
+        {"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 3}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "WITH latest AS (SELECT DISTINCT ON (data) data, payload FROM events WHERE service='infrastructure' AND type='system.proxy_snapshot' AND received_at > now() - interval '3 hours' ORDER BY data, received_at DESC) SELECT count(*)::int AS value FROM latest WHERE (payload->'scenario'->>'days_left')::float < 1;"}]
+    },
+    {"id": 3, "type": "stat", "title": "Истечёт за 3 дня",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [
+        {"color": "green", "value": null}, {"color": "orange", "value": 2}, {"color": "red", "value": 5}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "WITH latest AS (SELECT DISTINCT ON (data) data, payload FROM events WHERE service='infrastructure' AND type='system.proxy_snapshot' AND received_at > now() - interval '3 hours' ORDER BY data, received_at DESC) SELECT count(*)::int AS value FROM latest WHERE (payload->'scenario'->>'days_left')::float < 3;"}]
+    },
+    {"id": 4, "type": "stat", "title": "Min дней до истечения",
+      "description": "Минимальное оставшееся время среди всех активных прокси — самый горячий.",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "d", "decimals": 1, "thresholds": {"mode": "absolute", "steps": [
+        {"color": "red", "value": null}, {"color": "orange", "value": 1}, {"color": "green", "value": 5}]}}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "WITH latest AS (SELECT DISTINCT ON (data) data, payload FROM events WHERE service='infrastructure' AND type='system.proxy_snapshot' AND received_at > now() - interval '3 hours' ORDER BY data, received_at DESC) SELECT min((payload->'scenario'->>'days_left')::float)::numeric(10,1) AS value FROM latest;"}]
+    },
+    {"id": 10, "type": "table", "title": "Прокси: текущее состояние (отсортировано по сроку)",
+      "description": "Последний снимок по каждому прокси. Колонка 'Дней осталось' — это TTL. Сортируй кликом по колонке.",
+      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 14},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "options": {"showHeader": true, "footer": {"show": false}},
+      "fieldConfig": {"defaults": {}, "overrides": [
+        {"matcher": {"id": "byName", "options": "Дней осталось"}, "properties": [
+          {"id": "unit", "value": "d"},
+          {"id": "decimals", "value": 1},
+          {"id": "thresholds", "value": {"mode": "absolute", "steps": [
+            {"color": "red", "value": null}, {"color": "orange", "value": 1}, {"color": "yellow", "value": 3}, {"color": "green", "value": 7}]}},
+          {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}}
+        ]},
+        {"matcher": {"id": "byName", "options": "Истекает"}, "properties": [
+          {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+        ]}
+      ]},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "WITH latest AS (SELECT DISTINCT ON (data) data, payload FROM events WHERE service='infrastructure' AND type='system.proxy_snapshot' AND received_at > now() - interval '3 hours' ORDER BY data, received_at DESC) SELECT payload->'scenario'->>'provider' AS \"Провайдер\", data AS \"IP:Port\", payload->'scenario'->>'user' AS \"Login\", payload->'scenario'->>'pass' AS \"Password\", payload->'scenario'->>'proxy_type' AS \"Тип\", payload->'scenario'->>'country' AS \"Country\", (payload->'scenario'->>'expires_at')::timestamptz AS \"Истекает\", (payload->'scenario'->>'days_left')::float AS \"Дней осталось\" FROM latest ORDER BY (payload->'scenario'->>'days_left')::float ASC;"}]
+    },
+    {"id": 20, "type": "timeseries", "title": "Days left — динамика",
+      "description": "Линия на каждый прокси. Спадает к нулю по мере приближения даты истечения; резко вверх — после продления.",
+      "gridPos": {"x": 0, "y": 18, "w": 24, "h": 8},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "fieldConfig": {"defaults": {"unit": "d", "decimals": 1, "custom": {"lineWidth": 1, "fillOpacity": 0, "showPoints": "never"}}},
+      "options": {"legend": {"showLegend": true, "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "asc"}},
+      "targets": [{"refId": "A", "format": "time_series",
+        "rawSql": "SELECT received_at AS time, data AS metric, (payload->'scenario'->>'days_left')::float AS value FROM events WHERE service='infrastructure' AND type='system.proxy_snapshot' AND $__timeFilter(received_at) ORDER BY received_at;"}]
+    }
+  ]
+}

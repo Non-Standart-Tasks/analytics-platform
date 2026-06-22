@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 11,
+  "version": 12,
   "refresh": "30s",
   "time": {
     "from": "now-24h",
@@ -45,7 +45,7 @@
       "gridPos": {
         "x": 0,
         "y": 11,
-        "w": 6,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -65,9 +65,9 @@
       "type": "stat",
       "title": "Прокси: истечёт за 24ч",
       "gridPos": {
-        "x": 6,
+        "x": 5,
         "y": 11,
-        "w": 6,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -108,9 +108,9 @@
       "type": "stat",
       "title": "Прокси: истечёт за 3д",
       "gridPos": {
-        "x": 12,
+        "x": 10,
         "y": 11,
-        "w": 6,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -152,9 +152,9 @@
       "title": "Прокси: min дней",
       "description": "Минимальное время до истечения среди всех прокси. Жми сюда → перейдёшь в полный дашборд 'Proxies'.",
       "gridPos": {
-        "x": 18,
+        "x": 15,
         "y": 11,
-        "w": 6,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -1068,6 +1068,52 @@
           }
         ]
       }
+    },
+    {
+      "id": 304,
+      "type": "stat",
+      "title": "Rucaptcha balance",
+      "description": "Текущий баланс на аккаунте Rucaptcha (₽). Обновляется раз в час.",
+      "gridPos": {
+        "x": 20,
+        "y": 11,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyRUB",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (payload->'scenario'->>'balance_rub')::float AS value FROM events WHERE service='infrastructure' AND type='system.rucaptcha_balance' ORDER BY received_at DESC LIMIT 1;"
+        }
+      ]
     }
   ]
 }

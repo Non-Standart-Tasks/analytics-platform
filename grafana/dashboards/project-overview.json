@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 12,
+  "version": 13,
   "refresh": "30s",
   "time": {
     "from": "now-24h",
@@ -23,7 +23,7 @@
           "type": "postgres",
           "uid": "analytics-postgres"
         },
-        "query": "SELECT DISTINCT service FROM events WHERE service != 'infrastructure' ORDER BY service;",
+        "query": "SELECT DISTINCT service FROM events WHERE service IN ('avia_system', 'AMA_avia_project') ORDER BY service;",
         "refresh": 1,
         "sort": 1,
         "multi": true,

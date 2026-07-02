@@ -83,9 +83,17 @@
       "targets": [{"refId": "A", "format": "time_series",
         "rawSql": "SELECT date_trunc('day', received_at) AS time, count(*)::int AS \"created\" FROM events WHERE service = '$service' AND type = 'report.created' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 1;"}]
     },
+    {"id": 15, "type": "table", "title": "Открытые репорты сейчас (из последнего снапшота)",
+      "description": "Текущий бэклог открытых репортов — распаковка open_reports из самого свежего report.snapshot. Обновляется раз в ~10 мин. Не зависит от time picker.",
+      "gridPos": {"x": 0, "y": 14, "w": 24, "h": 12},
+      "datasource": {"type": "postgres", "uid": "analytics-postgres"},
+      "options": {"showHeader": true, "footer": {"show": false}},
+      "targets": [{"refId": "A", "format": "table",
+        "rawSql": "WITH latest AS (SELECT payload FROM events WHERE service = '$service' AND type = 'report.snapshot' ORDER BY received_at DESC LIMIT 1) SELECT (r->>'created_at')::timestamptz AS \"Создан\", r->>'title' AS \"Заголовок\", r->>'report_id' AS \"Report ID\", r->>'owner_id' AS \"Owner ID\" FROM latest, jsonb_array_elements(payload->'scenario'->'open_reports') AS r ORDER BY (r->>'created_at')::timestamptz DESC;"}]
+    },
     {"id": 20, "type": "table", "title": "Лента событий репортов (новые сверху)",
-      "description": "Все события создания / смены статуса / удаления репортов. 'Новый репорт пришёл' = строка с типом report.created.",
-      "gridPos": {"x": 0, "y": 14, "w": 24, "h": 16},
+      "description": "События создания / смены статуса / удаления репортов (снапшоты сюда не попадают). 'Новый репорт пришёл' = строка с типом 🆕 создан.",
+      "gridPos": {"x": 0, "y": 26, "w": 24, "h": 16},
       "datasource": {"type": "postgres", "uid": "analytics-postgres"},
       "options": {"showHeader": true, "footer": {"show": false}},
       "fieldConfig": {"defaults": {}, "overrides": [
@@ -99,7 +107,7 @@
         ]}
       ]},
       "targets": [{"refId": "A", "format": "table",
-        "rawSql": "SELECT received_at AS \"Время\", type AS \"Событие\", payload->'scenario'->>'title' AS \"Заголовок\", payload->'scenario'->>'status' AS \"Статус\", (payload->'scenario'->>'open_total')::int AS \"Открыто\", (payload->'scenario'->>'closed_total')::int AS \"Закрыто\", payload->'scenario'->>'report_id' AS \"Report ID\" FROM events WHERE service = '$service' AND type LIKE 'report.%' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 200;"}]
+        "rawSql": "SELECT received_at AS \"Время\", type AS \"Событие\", payload->'scenario'->>'title' AS \"Заголовок\", payload->'scenario'->>'status' AS \"Статус\", (payload->'scenario'->>'open_total')::int AS \"Открыто\", (payload->'scenario'->>'closed_total')::int AS \"Закрыто\", payload->'scenario'->>'report_id' AS \"Report ID\" FROM events WHERE service = '$service' AND type IN ('report.created', 'report.status_changed', 'report.deleted') AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 200;"}]
     }
   ]
 }

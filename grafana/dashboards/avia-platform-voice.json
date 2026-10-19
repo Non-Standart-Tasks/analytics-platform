@@ -1,0 +1,1927 @@
+{
+  "title": "Avia App Dashboard",
+  "uid": "avia-platform-voice",
+  "tags": [
+    "avia_platform",
+    "voice",
+    "telemetry"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 10,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Сессии (24ч)",
+      "description": "Уникальные голосовые сессии (scenario.started) за сутки.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(DISTINCT request_id) AS value FROM events WHERE service='avia_platform' AND type='scenario.started' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Уникальные пользователи (24ч)",
+      "description": "Distinct Telegram user_id за сутки. Web-сессии без Telegram не считаются.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(DISTINCT payload->'scenario'->>'user_id') AS value FROM events WHERE service='avia_platform' AND received_at > now() - interval '24 hours' AND payload->'scenario'->>'user_id' IS NOT NULL;"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Запусков поиска (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.search.launched' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Переспросов (24ч)",
+      "description": "voice.slot.reask — сколько раз ассистент не понял ответ и переспросил.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.slot.reask' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Ошибки (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND received_at > now() - interval '24 hours' AND (status='error' OR type LIKE '%.failed');"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Распознавание p95 (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'scenario'->>'latency_ms')::numeric) AS value FROM events WHERE service='avia_platform' AND type='voice.transcribe.completed' AND received_at > now() - interval '24 hours' AND payload->'scenario'->>'latency_ms' IS NOT NULL;"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Воронка голосового запроса",
+      "description": "Старт сессии → распознан голос → указал «Куда» → запустил поиск → нашлись билеты. По request_id.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 8,
+        "h": 10
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "WITH ew AS (SELECT * FROM events WHERE service='avia_platform' AND $__timeFilter(received_at)) SELECT step AS metric, n AS value FROM (VALUES ('1. Старт сессии', (SELECT count(DISTINCT request_id) FROM ew WHERE type='scenario.started')), ('2. Распознан голос', (SELECT count(DISTINCT request_id) FROM ew WHERE type='voice.transcribe.completed')), ('3. Указал «Куда»', (SELECT count(DISTINCT request_id) FROM ew WHERE type='voice.slot.filled' AND payload->'scenario'->>'slot'='destination')), ('4. Запустил поиск', (SELECT count(DISTINCT request_id) FROM ew WHERE type='voice.search.launched')), ('5. Нашлись билеты', (SELECT count(DISTINCT request_id) FROM ew WHERE type='voice.search.completed' AND status='success'))) AS t(step, n);"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Переспросы по причине",
+      "description": "Почему ассистент переспрашивал: city / date / adults / silence / all / unparsed.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 8,
+        "h": 10
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'reason','—') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.slot.reask' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Переспросы по слоту",
+      "description": "Какой параметр чаще не понимали: destination / origin / date / adults.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 8,
+        "h": 10
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'slot','—') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.slot.reask' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "События в минуту (по типу)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 14,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "drawStyle": "line"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT date_trunc('minute', received_at) AS time, type AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND $__timeFilter(received_at) GROUP BY 1, 2 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Собрано параметров (по слоту)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 14,
+        "w": 10,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'slot','—') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.slot.filled' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Задержки p95 — распознавание и поиск",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "drawStyle": "line"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT date_trunc('minute', received_at) AS time, 'transcribe p95' AS metric, percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'scenario'->>'latency_ms')::numeric) AS value FROM events WHERE service='avia_platform' AND type='voice.transcribe.completed' AND $__timeFilter(received_at) AND payload->'scenario'->>'latency_ms' IS NOT NULL GROUP BY 1 UNION ALL SELECT date_trunc('minute', received_at), 'search p95', percentile_cont(0.95) WITHIN GROUP (ORDER BY (payload->'scenario'->>'latency_ms')::numeric) FROM events WHERE service='avia_platform' AND type='voice.search.completed' AND $__timeFilter(received_at) AND payload->'scenario'->>'latency_ms' IS NOT NULL GROUP BY 1 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Сессии (последние)",
+      "description": "По request_id: когда, кто, сколько переспросов/голосовых реплик, дошёл ли до поиска, сколько билетов нашлось.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "WITH ew AS (SELECT * FROM events WHERE service='avia_platform' AND $__timeFilter(received_at)) SELECT min(received_at) AS started, max(payload->'scenario'->>'user_id') AS usr, request_id AS session, count(*) FILTER (WHERE type='voice.transcribe.completed') AS voice_turns, count(*) FILTER (WHERE type='voice.slot.reask') AS reasks, bool_or(type='voice.search.launched') AS searched, max((payload->'scenario'->>'count')::int) FILTER (WHERE type='voice.search.completed') AS tickets FROM ew WHERE request_id IS NOT NULL GROUP BY request_id ORDER BY started DESC LIMIT 60;"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Разбор фразы — что сказал / что собрали / где не хватило",
+      "description": "voice.parse.completed: исходная фраза, распознанные origin/dest/date, готовность к поиску и что просили уточнить.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, data AS heard, COALESCE(payload->'scenario'->>'origin_name', payload->'scenario'->>'origin') AS origin, COALESCE(payload->'scenario'->>'destination_name', payload->'scenario'->>'destination') AS dest, payload->'scenario'->>'date' AS dt, payload->'scenario'->>'ready' AS ready, payload->'scenario'->>'clarify' AS clarify FROM events WHERE service='avia_platform' AND type='voice.parse.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 60;"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Переспросы (последние)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, payload->'scenario'->>'slot' AS slot, payload->'scenario'->>'reason' AS reason, payload->'scenario'->>'attempt' AS attempt, payload->'scenario'->>'kind' AS kind FROM events WHERE service='avia_platform' AND type='voice.slot.reask' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 80;"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Ошибки (последние)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, type, status, data AS detail, payload->'scenario'->>'user_id' AS usr FROM events WHERE service='avia_platform' AND (status='error' OR type LIKE '%.failed') AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 80;"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Покупки (24ч)",
+      "description": "Клики «Купить» (feed.buy) → переход на гейт.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.buy' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "stat",
+      "title": "Открытий билета (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 56,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.ticket.open' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "stat",
+      "title": "Кликов по табам (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.tab' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Применений фильтров (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 56,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.filter' AND payload->'scenario'->>'on'='true' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "barchart",
+      "title": "Клики по табам (Обзор / График / Все билеты)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'label', payload->'scenario'->>'tab') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.tab' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "barchart",
+      "title": "Фильтры по категории",
+      "description": "Какие фильтры включают: пересадки / время / цена / длительность / багаж / авиакомпания.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 60,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'cat','—') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.filter' AND payload->'scenario'->>'on'='true' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "barchart",
+      "title": "Сортировка «Все билеты» (группы)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 60,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'label', payload->'scenario'->>'sort') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='feed.sort' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "table",
+      "title": "Результаты поиска — всего билетов и по 3 группам",
+      "description": "feed.results.shown: общее число рейсов, оптимальная выборка, всего уникальных, и сколько показано в каждой из 3 групп Обзора (дешёвые/оптимальные/быстрые) + партиция rec-engine.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, payload->'scenario'->>'origin' AS origin, payload->'scenario'->>'destination' AS dest, (payload->'scenario'->>'total')::int AS total, (payload->'scenario'->>'selection')::int AS selection, (payload->'scenario'->>'all_offers')::int AS all_offers, (payload->'scenario'->'groups_shown'->>'cheapest')::int AS g_cheap, (payload->'scenario'->'groups_shown'->>'optimal')::int AS g_optimal, (payload->'scenario'->'groups_shown'->>'fastest')::int AS g_fast, payload->'scenario'->>'selection_groups' AS rec_groups FROM events WHERE service='avia_platform' AND type='feed.results.shown' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 60;"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "type": "stat",
+      "title": "Расходы на модели (24ч)",
+      "description": "Сумма cost_rub по всем вызовам моделей (LLM реальная цена polza + оценка STT/TTS).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 77,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyRUB",
+          "decimals": 3
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(sum((payload->'scenario'->>'cost_rub')::numeric),0) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "type": "stat",
+      "title": "Вызовов моделей (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 77,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "type": "stat",
+      "title": "LLM-токенов (24ч)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 77,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(sum((payload->'llm_tokens'->>'total_tokens')::numeric),0) AS value FROM events WHERE service='avia_platform' AND type='llm.inference.completed' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "type": "stat",
+      "title": "Сред. стоимость сессии (24ч)",
+      "description": "Сумма cost_rub / число уникальных сессий (request_id) за 24ч.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 77,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyRUB",
+          "decimals": 3
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT round(COALESCE(sum((payload->'scenario'->>'cost_rub')::numeric),0) / NULLIF(count(DISTINCT request_id),0), 4) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND received_at > now() - interval '24 hours' AND request_id IS NOT NULL;"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "type": "barchart",
+      "title": "Стоимость по шагам (₽)",
+      "description": "На какой шаг сколько тратится: parse / assistant / analyze.insights / advice / smart-advice / transcribe / tts.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 81,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'step','—') AS metric, round(sum((payload->'scenario'->>'cost_rub')::numeric),4) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "barchart",
+      "title": "Стоимость по моделям (₽)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 81,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'model','—') AS metric, round(sum((payload->'scenario'->>'cost_rub')::numeric),4) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "type": "barchart",
+      "title": "Вызовы по моделям",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 81,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'model','—') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Расходы в минуту (₽, по шагам)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 89,
+        "w": 24,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyRUB",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "drawStyle": "bars",
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT date_trunc('minute', received_at) AS time, COALESCE(payload->'scenario'->>'step','—') AS metric, sum((payload->'scenario'->>'cost_rub')::numeric) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) GROUP BY 1,2 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "type": "table",
+      "title": "Стоимость по сессиям (₽) — смета на пользователя",
+      "description": "По request_id: суммарная стоимость, число вызовов моделей, токены и какие шаги были.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 97,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT request_id AS session, max(payload->'scenario'->>'user_id') AS usr, round(sum((payload->'scenario'->>'cost_rub')::numeric),4) AS cost_rub, count(*) AS calls, COALESCE(sum((payload->'llm_tokens'->>'total_tokens')::numeric),0) AS tokens, string_agg(DISTINCT payload->'scenario'->>'step', ', ') AS steps FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) AND request_id IS NOT NULL GROUP BY request_id ORDER BY cost_rub DESC NULLS LAST LIMIT 60;"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "type": "table",
+      "title": "Последние вызовы моделей",
+      "description": "Каждый вызов: шаг, тип (text/stt/tts), модель, провайдер, токены, стоимость (est=оценка для аудио).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 106,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, request_id AS session, payload->'scenario'->>'step' AS step, payload->'scenario'->>'kind' AS kind, payload->'scenario'->>'model' AS model, payload->'scenario'->>'provider' AS provider, payload->'llm_tokens'->>'total_tokens' AS tokens, payload->'scenario'->>'credits' AS credits, round((payload->'scenario'->>'cost_rub')::numeric,5) AS cost_rub, payload->'scenario'->>'cost_estimated' AS est FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 80;"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "type": "barchart",
+      "title": "Источник: поиски",
+      "description": "Поиски по источнику: telegram/web (живые) vs скрипт (platform=unknown).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 115,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT CASE WHEN payload->'scenario'->>'platform'='unknown' THEN 'скрипт' WHEN payload->'scenario'->>'platform'='web' THEN 'web' WHEN payload->'scenario'->>'platform' IS NULL THEN '—' ELSE 'telegram' END AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.search.completed' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "type": "barchart",
+      "title": "Источник: стоимость ₽",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 115,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT CASE WHEN payload->'scenario'->>'platform'='unknown' THEN 'скрипт' WHEN payload->'scenario'->>'platform'='web' THEN 'web' WHEN payload->'scenario'->>'platform' IS NULL THEN '—' ELSE 'telegram' END AS metric, round(sum((payload->'scenario'->>'cost_rub')::numeric),3) AS value FROM events WHERE service='avia_platform' AND type IN ('llm.inference.completed','model.stt.completed','model.tts.completed','model.convai.completed') AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "type": "table",
+      "title": "Источник: сводка",
+      "description": "По источнику: сессии, поиски, уник. юзеры, стоимость ₽.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 115,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT CASE WHEN payload->'scenario'->>'platform'='unknown' THEN 'скрипт' WHEN payload->'scenario'->>'platform'='web' THEN 'web' WHEN payload->'scenario'->>'platform' IS NULL THEN '—' ELSE 'telegram' END AS source, count(DISTINCT request_id) AS sessions, count(*) FILTER (WHERE type='voice.search.completed') AS searches, count(DISTINCT payload->'scenario'->>'user_id') AS users, round(sum((payload->'scenario'->>'cost_rub')::numeric),3) AS cost_rub FROM events WHERE service='avia_platform' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY searches DESC;"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "type": "timeseries",
+      "title": "Источник: поиски в минуту",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 123,
+        "w": 24,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "drawStyle": "bars",
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT date_trunc('minute', received_at) AS time, CASE WHEN payload->'scenario'->>'platform'='unknown' THEN 'скрипт' WHEN payload->'scenario'->>'platform'='web' THEN 'web' WHEN payload->'scenario'->>'platform' IS NULL THEN '—' ELSE 'telegram' END AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='voice.search.completed' AND $__timeFilter(received_at) GROUP BY 1,2 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "type": "stat",
+      "title": "Разговоров с агентом (24ч)",
+      "description": "ElevenLabs Conversational AI — начатые разговоры.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 130,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='agent.connected' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "type": "stat",
+      "title": "Ср. длительность (24ч)",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 130,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT round(avg((payload->'scenario'->>'duration_secs')::numeric),0) AS value FROM events WHERE service='avia_platform' AND type='model.convai.completed' AND received_at > now() - interval '24 hours' AND payload->'scenario'->>'duration_secs' IS NOT NULL;"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "type": "stat",
+      "title": "Стоимость агента (24ч)",
+      "description": "Точная стоимость разговоров (metadata.cost ElevenLabs → ₽). Дорого: ~16₽ за разговор.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 130,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyRUB"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(round(sum((payload->'scenario'->>'cost_rub')::numeric),2),0) AS value FROM events WHERE service='avia_platform' AND type='model.convai.completed' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "type": "stat",
+      "title": "Реплик/разговор (24ч)",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 130,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT round(avg((payload->'scenario'->>'message_count')::numeric),1) AS value FROM events WHERE service='avia_platform' AND type='model.convai.completed' AND received_at > now() - interval '24 hours' AND payload->'scenario'->>'message_count' IS NOT NULL;"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "type": "barchart",
+      "title": "Агент: воронка",
+      "description": "Подключился → назвал параметр → submit_search → нашлись билеты (по request_id).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 134,
+        "w": 8,
+        "h": 9
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "WITH ew AS (SELECT * FROM events WHERE service='avia_platform' AND $__timeFilter(received_at)) SELECT step AS metric, n AS value FROM (VALUES ('1. подключился',(SELECT count(DISTINCT request_id) FROM ew WHERE type='agent.connected')),('2. назвал параметр',(SELECT count(DISTINCT request_id) FROM ew WHERE type='agent.params.updated')),('3. submit_search',(SELECT count(DISTINCT request_id) FROM ew WHERE type='agent.search.submitted')),('4. нашлись билеты',(SELECT count(DISTINCT request_id) FROM ew WHERE type='voice.search.completed' AND status='success'))) AS t(step,n);"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "type": "table",
+      "title": "Агент: разговоры (стоимость/длительность)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 134,
+        "w": 16,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, payload->'scenario'->>'conversation_id' AS conversation, (payload->'scenario'->>'duration_secs')::int AS dur_s, (payload->'scenario'->>'message_count')::int AS msgs, payload->'scenario'->>'credits' AS credits, round((payload->'scenario'->>'cost_rub')::numeric,2) AS cost_rub FROM events WHERE service='avia_platform' AND type='model.convai.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "type": "table",
+      "title": "Агент: транскрипт (последние реплики)",
+      "description": "agent.message — что говорил пользователь (user) и агент (agent).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 143,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, left(request_id,8) AS sess, payload->'scenario'->>'role' AS role, data AS text FROM events WHERE service='avia_platform' AND type='agent.message' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 80;"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "type": "stat",
+      "title": "Opus: сообщений (24ч)",
+      "description": "Сообщения пользователя в Opus-чате.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 152,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='opus.message' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "type": "stat",
+      "title": "Opus: поисков (24ч)",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 152,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='opus.search' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "type": "stat",
+      "title": "Opus: фильтров (24ч)",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 152,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='opus.filter.applied' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "type": "stat",
+      "title": "Opus: ответов (24ч)",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 152,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT count(*) AS value FROM events WHERE service='avia_platform' AND type='opus.reply' AND received_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "type": "barchart",
+      "title": "Opus: ответы по типу",
+      "description": "results (поиск) / compare (сравнение) / text (ответ из памяти/не понял).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 156,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT COALESCE(payload->'scenario'->>'kind','—') AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type='opus.reply' AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "type": "barchart",
+      "title": "Opus: фильтры по источнику",
+      "description": "sovet (тап подсказки) / chip (чип-фильтр) / removed (снят фильтр).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 156,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT CASE WHEN type='opus.filter.removed' THEN 'removed' ELSE COALESCE(payload->'scenario'->>'source','filter') END AS metric, count(*) AS value FROM events WHERE service='avia_platform' AND type IN ('opus.filter.applied','opus.filter.removed') AND $__timeFilter(received_at) GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "type": "table",
+      "title": "Opus: транскрипт чата (последнее)",
+      "description": "opus.message (что спросил юзер) + opus.reply (что ответил Opus: kind + текст).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 164,
+        "w": 24,
+        "h": 9
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, left(request_id,8) AS sess, CASE WHEN type='opus.message' THEN 'user' ELSE 'opus:'||COALESCE(payload->'scenario'->>'kind','') END AS role, data AS text FROM events WHERE service='avia_platform' AND type IN ('opus.message','opus.reply') AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "type": "table",
+      "title": "Записи звука (последние) — клик «слушать»",
+      "description": "Аудио, что шло в помощника: /transcribe (Opus/голос) + разговоры агента ElevenLabs. Колонка audio — ссылка на плеер /api/audio/{id}.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 173,
+        "w": 24,
+        "h": 10
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "audio"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "▶ слушать",
+                    "url": "${__value.text}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "rawSql": "SELECT received_at AS time, payload->'scenario'->>'user_id' AS usr, 'запись' AS kind, left(COALESCE(data,''),50) AS text, payload->'scenario'->>'audio_url' AS audio FROM events WHERE service='avia_platform' AND type IN ('voice.transcribe.completed','voice.transcribe.empty','voice.transcribe.failed') AND payload->'scenario'->>'audio_url' IS NOT NULL AND $__timeFilter(received_at) UNION ALL SELECT received_at, payload->'scenario'->>'user_id', 'агент-разговор', 'conv '||COALESCE(payload->'scenario'->>'duration_secs','')||'с', payload->'scenario'->>'audio_url' FROM events WHERE service='avia_platform' AND type='model.convai.completed' AND payload->'scenario'->>'audio_url' IS NOT NULL AND $__timeFilter(received_at) ORDER BY time DESC LIMIT 80;"
+        }
+      ]
+    }
+  ]
+}

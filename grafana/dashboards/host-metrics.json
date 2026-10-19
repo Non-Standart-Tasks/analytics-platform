@@ -1,5 +1,5 @@
 {
-  "title": "Server Load",
+  "title": "Infra Server Load",
   "uid": "host-metrics",
   "tags": ["infrastructure", "load", "telemetry"],
   "timezone": "browser",

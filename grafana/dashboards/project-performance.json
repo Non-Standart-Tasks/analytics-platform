@@ -1,5 +1,5 @@
 {
-  "title": "Project Performance (timings)",
+  "title": "AMA AVIA Performance",
   "uid": "project-performance",
   "tags": ["multi-service", "performance", "telemetry"],
   "timezone": "browser",
@@ -14,7 +14,7 @@
         "label": "Project",
         "type": "query",
         "datasource": {"type": "postgres", "uid": "analytics-postgres"},
-        "query": "SELECT DISTINCT service FROM events WHERE type = 'scenario.completed' ORDER BY service;",
+        "query": "SELECT DISTINCT service FROM events WHERE type = 'scenario.completed' AND service IN ('avia_system', 'AMA_avia_project') ORDER BY service;",
         "refresh": 1,
         "sort": 1,
         "multi": true,

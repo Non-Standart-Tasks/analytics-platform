@@ -59,8 +59,8 @@ GROUP BY s.event_id, s.payload;
 | `compliance.complex_segment_dates_inferred` | LLM не дал даты промежуточных сегментов сложного маршрута, код подставил «дата первого сегмента + N дней». Поиск идёт. Рост частоты — сигнал править промпт. | `{segments_count, inferred_indices: [int, ...]}` |
 | `compliance.complex_segment_origins_inferred` | LLM создал лишний сегмент «город X, прибытие» (это пункт назначения предыдущего сегмента), код его удалил. Поиск идёт. | `{segments_count_before, removed_indices: [int, ...]}` |
 | `compliance.complex_route_no_segments` | Запрос сочли сложным маршрутом, а повторный разбор не дал ни одного сегмента — ищем как обычный маршрут. Над выдачей ничего не показывается. | `{first_is_complex: true, second_is_complex: bool\|null}` |
-| `compliance.travelpayouts_unknown_location` | TravelPayouts вернул 400 invalid-arguments по конкретному IATA-коду (FRU и подобные): наш справочник код знает, а партнёрский API — нет. Повторы прекращаются. | `{location, body_snippet}` |
-| `compliance.travelpayouts_runtime_failure` | TravelPayouts не отдал данные (таймаут, сеть, 5xx, исчерпаны повторы). Если AMA в этом же поиске вернула предложения — ответ только по AMA с ℹ️-плашкой. | `{error_type, error_message, ama_proposals_count}` |
+| `compliance.travelpayouts_unknown_location` | Код аэропорта не принимает партнёрский API TravelPayouts. Два случая: до запроса — код в `KNOWN_UNSUPPORTED_TP_LOCATIONS` (FRU, NIC, TSE), TravelPayouts не вызываем, поиск идёт только по AMA, `body_snippet="pre-flight skip"`; после запроса — TravelPayouts ответил 400 invalid-arguments по коду, которого нет в этом списке, повторы прекращаются, ответ «не найдено». | `{location, body_snippet}` |
+| `compliance.travelpayouts_runtime_failure` | TravelPayouts не отдал данные ни по одной паре дат (таймаут, сеть, 5xx, исчерпаны повторы), а AMA в этом же поиске вернула предложения: ответ только по AMA с ℹ️-плашкой. Если AMA пуста или поиск и так шёл только по AMA — кода нет, у запроса `scenario.failed`. Частичный сбой TravelPayouts виден только в `tp_failed_searches_count` у `scenario.completed`. | `{error_type, error_message, ama_proposals_count}` |
 
 ### search.* — нюансы результата
 
@@ -88,14 +88,15 @@ GROUP BY s.event_id, s.payload;
 | Код                | Когда возникает | Поле `scenario` |
 |--------------------|-----------------|-----------------|
 | `llm.call_timeout` | Вызов LLM в шаге разбора запроса оборван по таймауту (`AVIA_LLM_CALL_TIMEOUT_S`, 30 с), шаг повторён; следующие 10 минут вызовы в процессе идут без таймаута. | `{step, timeout_s}` |
-| `memory.near_oom`  | Память процесса бэкенда подошла к лимиту пода. Шлётся синхронно из `telemetry-client` (`emit_near_oom_sync`), не через `system_warnings.py`. | — |
+| `memory.near_oom`  | Пиковая память arq-воркера на одном запросе дошла до порога `near_oom_threshold_mb` (1100 МБ, верхний ~1% пиков; `PeakRSSSampler`), не больше одного раза на запрос. Это не лимит пода, а ранний сигнал тяжёлого запроса. Шлётся из `telemetry-client` (`emit_near_oom_sync`), не через `system_warnings.py`. | `{process_label: "arq-worker", process_rss_mb, threshold_mb, query}` |
 
 ## Подписи на дашбордах
 
 Русские подписи кодов в панелях Grafana генерируются из этой таблицы скриптом
 `scripts/warning_labels.py`: он переписывает `CASE` между маркерами
 `/* warning-labels:<колонка> */` и `/* /warning-labels */` в SQL панелей. Код без
-подписи показывается как есть. В подписях не используйте кавычки и обратный слэш.
+подписи показывается как есть. Подписи уникальны; кавычки, обратный слэш, `$` и `[[`
+в них запрещены (`$` и `[[` Grafana подставляет как переменные даже внутри строк).
 
 | Код | Подпись |
 |-----|---------|
@@ -104,7 +105,7 @@ GROUP BY s.event_id, s.payload;
 | `compliance.country_unknown` | Код страны вместо города, поиск не запущен |
 | `compliance.same_origin_destination` | Город вылета и назначения совпадают |
 | `compliance.city_ambiguous` | Город неоднозначен, взят самый популярный |
-| `compliance.city_nearby_airport` | Нет аэропорта, искали ближайший |
+| `compliance.city_nearby_airport` | Место сопоставлено с аэропортом (рядом, регион, опечатка) |
 | `compliance.city_unresolved` | Место не распознано, поиск не запущен |
 | `compliance.adults_too_many` | Больше 9 взрослых |
 | `compliance.date_beyond_horizon` | Дата дальше чем на год, поиск не запущен |
@@ -122,7 +123,7 @@ GROUP BY s.event_id, s.payload;
 | `compliance.complex_segment_origins_inferred` | Сложный маршрут: лишний сегмент удалён |
 | `compliance.complex_route_no_segments` | Сложный маршрут не разобран, искали как обычный |
 | `compliance.travelpayouts_unknown_location` | TravelPayouts не принимает код аэропорта |
-| `compliance.travelpayouts_runtime_failure` | Сбой TravelPayouts |
+| `compliance.travelpayouts_runtime_failure` | Сбой TravelPayouts, ответ только по AMA |
 | `search.no_direct_flights` | Прямых на дату нет |
 | `search.no_direct_neighboring` | Прямых нет и на соседних датах, показаны с пересадками |
 | `search.time_interval_expanded_to` | Расширено время вылета туда |
@@ -140,7 +141,7 @@ GROUP BY s.event_id, s.payload;
 | `search.fare_terms_unverified` | Условия возврата или обмена не проверены |
 | `search.aborted` | Поиск оборван (таймаут или рестарт) |
 | `llm.call_timeout` | Таймаут вызова LLM, шаг повторён |
-| `memory.near_oom` | Память процесса у лимита |
+| `memory.near_oom` | Пик памяти запроса выше порога |
 
 ## Топ-запросы
 

@@ -28,8 +28,10 @@ LABELS_HEADING = "## Подписи на дашбордах"
 MARKER = re.compile(
     r"/\* warning-labels:(?P<col>[A-Za-z_][A-Za-z0-9_.]*) \*/ (?P<body>.*?) /\* /warning-labels \*/"
 )
-ROW = re.compile(r"^\| `(?P<code>[a-z_]+\.[a-z_.]+)` *\|(?P<rest>.*)$")
-PY_CODE = re.compile(r'^[A-Z][A-Z0-9_]*\s*=\s*\(?\s*"(?P<code>[a-z_]+\.[a-z_.]+)"', re.M)
+CODE = r"[a-z0-9_]+\.[a-z0-9_.]+"
+ROW = re.compile(rf"^\| `(?P<code>{CODE})` *\|(?P<rest>.*)$")
+CODE_CELL = re.compile(r"^\| `[^`]*` *\|")
+PY_CODE = re.compile(rf'^[A-Z][A-Z0-9_]*\s*(?::[^=]+)?=\s*\(?\s*"(?P<code>{CODE})"', re.M)
 
 
 def read_doc() -> tuple[dict[str, str], set[str]]:
@@ -44,10 +46,14 @@ def read_doc() -> tuple[dict[str, str], set[str]]:
     for line in section.splitlines():
         m = ROW.match(line)
         if not m:
+            if CODE_CELL.match(line):
+                raise SystemExit(f"не разобран код в строке подписей: {line}")
             continue
         label = m.group("rest").strip().rstrip("|").strip()
-        if not label or re.search(r"['\"\\]", label):
-            raise SystemExit(f"{m.group('code')}: пустая подпись или кавычки/слэш: {label!r}")
+        if not label or re.search(r"['\"\\$]|\[\[", label):
+            raise SystemExit(f"{m.group('code')}: пустая подпись или запрещённый символ: {label!r}")
+        if label in labels.values():
+            raise SystemExit(f"{m.group('code')}: подпись {label!r} уже есть у другого кода")
         if m.group("code") in labels:
             raise SystemExit(f"{m.group('code')}: подпись задана дважды")
         labels[m.group("code")] = label

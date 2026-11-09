@@ -56,6 +56,8 @@ GROUP BY s.event_id, s.payload;
 | `compliance.departure_date_missing`   | Пользователь не указал дату вылета и LLM не смог её доинферить (`aviasales_json['to'] == []`). Без даты Travelpayouts искать не умеет.                                                                    | `{origin, destination}`                                              |
 | `compliance.route_missing`            | В сообщении нет маршрута — LLM не извлёк город вылета и/или назначения (типично «спасибо», «а подешевле?»). Ответ «введите запрос заново», MCP — `needs_clarification`. | `{origin_raw, destination_raw}` |
 | `compliance.complex_segment_missing`  | Хотя бы один сегмент complex-маршрута не распарсился (типично — LLM не дал даты на промежуточный сегмент). Без всех сегментов нельзя строить общий запрос.                                                | `{segments_count: int, failed_indices: [int, ...]}`                  |
+| `compliance.complex_too_many_segments` | Перелётов в составном маршруте больше 6 — лимит TravelPayouts (на 7 он отвечает 400 invalid-number-of-directions). Обычно пересадки «через X» разобраны как перелёты. Поиск не запускаем, ⚠️ с лимитом; если в запросе есть «через»/«пересадка» — подсказка, что пересадки указывать не нужно. MCP — `needs_clarification`. | `{segments_count, limit, via: bool}` |
+| `compliance.complex_segments_out_of_order` | Перелёт составного маршрута вылетает раньше предыдущего: год даты без года решается у каждого перелёта отдельно («1 октября …, 15 ноября …» 09.11 → 2027 и 2026) или порядок перепутан. Поиск не запускаем, ⚠️ с просьбой проверить даты. MCP — `needs_clarification`. | `{segments_count, pair: [int, int], dates: [YYYY-MM-DD, YYYY-MM-DD]}` |
 | `compliance.complex_segment_dates_inferred` | LLM не дал даты промежуточных сегментов сложного маршрута, код подставил «дата первого сегмента + N дней». Поиск идёт. Рост частоты — сигнал править промпт. | `{segments_count, inferred_indices: [int, ...]}` |
 | `compliance.complex_segment_origins_inferred` | LLM создал лишний сегмент «город X, прибытие» (это пункт назначения предыдущего сегмента), код его удалил. Поиск идёт. | `{segments_count_before, removed_indices: [int, ...]}` |
 | `compliance.complex_route_no_segments` | Запрос сочли сложным маршрутом, а повторный разбор не дал ни одного сегмента — ищем как обычный маршрут. Над выдачей ничего не показывается. | `{first_is_complex: true, second_is_complex: bool\|null}` |
@@ -119,6 +121,8 @@ GROUP BY s.event_id, s.payload;
 | `compliance.departure_date_missing` | Дата вылета не указана |
 | `compliance.route_missing` | Маршрут не распознан |
 | `compliance.complex_segment_missing` | Сложный маршрут: сегмент не распознан |
+| `compliance.complex_too_many_segments` | Больше 6 перелётов в маршруте |
+| `compliance.complex_segments_out_of_order` | Перелёты не по порядку дат |
 | `compliance.complex_segment_dates_inferred` | Сложный маршрут: даты подставлены автоматически |
 | `compliance.complex_segment_origins_inferred` | Сложный маршрут: лишний сегмент удалён |
 | `compliance.complex_route_no_segments` | Сложный маршрут не разобран, искали как обычный |

@@ -1,12 +1,12 @@
 {
-  "title": "Project Funnel (raw → merged → before_llm → after_llm → ott → tickets)",
+  "title": "Project Funnel (raw → AMA / TP OTT → pool → before_llm → after_llm → ott → tickets)",
   "uid": "project-funnel",
   "tags": [
     "legacy"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": {
     "from": "now-7d",
@@ -61,7 +61,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "2. Merged (после AMA)",
+      "title": "2. AMA (предложения)",
       "gridPos": {
         "x": 6,
         "y": 0,
@@ -76,9 +76,10 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT avg((payload->'scenario'->>'merged_count')::int)::int AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND payload->'scenario'->>'merged_count' IS NOT NULL AND $__timeFilter(received_at);"
+          "rawSql": "SELECT avg(COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int))::int AS value FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) AND COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int) IS NOT NULL;"
         }
-      ]
+      ],
+      "description": "Предложения AMA до фильтров (ama_proposals_count; до 29.05.2026 — merged_count, он тогда был равен строкам AMA). merged_count с digital-assistant-2.0 #611 = AMA + TP OTT, поэтому здесь не используется."
     },
     {
       "id": 3,
@@ -167,9 +168,10 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT '1. Raw proposals' AS stage, avg((payload->'scenario'->>'raw_proposals_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '2. Merged (AMA offers)' AS stage, avg((payload->'scenario'->>'merged_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '3. Merged pool (TP+AMA)' AS stage, avg((payload->'scenario'->>'merged_pool_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '4. Before LLM (code-filters)' AS stage, avg((payload->'scenario'->>'before_llm_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '5. After LLM' AS stage, avg((payload->'scenario'->>'after_llm_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '6. After OTT whitelist' AS stage, avg((payload->'scenario'->>'after_ott_whitelist_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '7. Tickets shown' AS stage, avg((payload->'scenario'->>'tickets_shown')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY 1;"
+          "rawSql": "SELECT '1. Raw proposals (TP, все партнёры)' AS stage, avg((payload->'scenario'->>'raw_proposals_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '2. AMA proposals' AS stage, avg(COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int))::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '3. TP OTT (партнёр 20)' AS stage, avg((payload->'scenario'->>'tp_ott_proposals_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '4. Merged pool (TP+AMA)' AS stage, avg((payload->'scenario'->>'merged_pool_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '5. Before LLM (code-filters)' AS stage, avg((payload->'scenario'->>'before_llm_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '6. After LLM' AS stage, avg((payload->'scenario'->>'after_llm_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '7. After OTT whitelist' AS stage, avg((payload->'scenario'->>'after_ott_whitelist_count')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) UNION ALL SELECT '8. Tickets shown' AS stage, avg((payload->'scenario'->>'tickets_shown')::int)::int AS avg FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY 1;"
         }
-      ]
+      ],
+      "description": "TP OTT (tp_ott_proposals_count) пишется с digital-assistant-2.0 #611; в окне до выкатки среднее считается только по новым поискам."
     },
     {
       "id": 6,
@@ -216,7 +218,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", (payload->'scenario'->>'merged_count')::int AS \"AMA\", (payload->'scenario'->>'merged_pool_count')::int AS \"Pool\", (payload->'scenario'->>'before_llm_count')::int AS \"BeforeLLM\", (payload->'scenario'->>'after_llm_count')::int AS \"AfterLLM\", (payload->'scenario'->>'after_ott_whitelist_count')::int AS \"AfterOTT\", (payload->'scenario'->>'tickets_shown')::int AS \"Tickets\", CASE WHEN (payload->'scenario'->>'raw_proposals_count')::int > 0 THEN round(100.0 * (payload->'scenario'->>'tickets_shown')::int / (payload->'scenario'->>'raw_proposals_count')::int, 2) END AS \"% конв.\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
+          "rawSql": "SELECT received_at AS \"Время\", service AS \"Service\", data AS \"Запрос\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int) AS \"AMA\", (payload->'scenario'->>'tp_ott_proposals_count')::int AS \"TP OTT\", (payload->'scenario'->>'merged_pool_count')::int AS \"Pool\", (payload->'scenario'->>'before_llm_count')::int AS \"BeforeLLM\", (payload->'scenario'->>'after_llm_count')::int AS \"AfterLLM\", (payload->'scenario'->>'after_ott_whitelist_count')::int AS \"AfterOTT\", (payload->'scenario'->>'tickets_shown')::int AS \"Tickets\", CASE WHEN (payload->'scenario'->>'raw_proposals_count')::int > 0 THEN round(100.0 * (payload->'scenario'->>'tickets_shown')::int / (payload->'scenario'->>'raw_proposals_count')::int, 2) END AS \"% конв.\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 100;"
         }
       ]
     },
@@ -238,9 +240,10 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT received_at AS \"Время\", concat(payload->'scenario'->>'origin','-',payload->'scenario'->>'destination') AS \"Маршрут\", (payload->'scenario'->>'merged_pool_count')::int AS \"Pool\", (payload->'scenario'->>'before_llm_count')::int AS \"BeforeLLM\", (payload->'scenario'->>'after_llm_count')::int AS \"AfterLLM\", (payload->'scenario'->>'after_ott_whitelist_count')::int AS \"AfterOTT\", CASE   WHEN payload->'scenario'->>'before_llm_count' IS NULL THEN '(до funnel-деплоя)'   WHEN (payload->'scenario'->>'merged_pool_count')::int = 0 THEN 'no_data (нет proposals)'   WHEN (payload->'scenario'->>'before_llm_count')::int = 0 THEN 'code-filter (killer/даты)'   WHEN (payload->'scenario'->>'after_llm_count')::int = 0 THEN 'LLM-killer'   WHEN (payload->'scenario'->>'after_ott_whitelist_count')::int = 0 THEN 'OTT-whitelist (structural)'   ELSE 'render/ranking' END AS \"Причина\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0 AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
+          "rawSql": "SELECT received_at AS \"Время\", concat(payload->'scenario'->>'origin','-',payload->'scenario'->>'destination') AS \"Маршрут\", (payload->'scenario'->>'raw_proposals_count')::int AS \"Raw\", COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int) AS \"AMA\", (payload->'scenario'->>'tp_ott_proposals_count')::int AS \"TP OTT\", (payload->'scenario'->>'merged_pool_count')::int AS \"Pool\", (payload->'scenario'->>'before_llm_count')::int AS \"BeforeLLM\", (payload->'scenario'->>'after_llm_count')::int AS \"AfterLLM\", (payload->'scenario'->>'after_ott_whitelist_count')::int AS \"AfterOTT\", CASE   WHEN payload->'scenario'->>'tickets_zero_reason' = 'ama_failed_tp_empty' THEN 'ama_failed (сбой AMA, у TP нет OTT)'   WHEN payload->'scenario'->>'tickets_zero_reason' = 'tp_partial_failed' THEN 'tp_failed (часть поисков TP упала)'   WHEN payload->'scenario'->>'before_llm_count' IS NULL AND received_at < '2026-06-03 18:00+00' THEN '(до funnel-деплоя)'   WHEN payload->'scenario'->>'before_llm_count' IS NULL AND COALESCE(COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int), 0) = 0 AND (COALESCE((payload->'scenario'->>'ama_failed_count')::int, 0) > 0 OR jsonb_array_length(COALESCE(payload->'scenario'->'ama_error_types', '[]'::jsonb)) > 0) THEN 'ama_failed (сбой AMA, у TP нет OTT)'   WHEN payload->'scenario'->>'before_llm_count' IS NULL AND COALESCE(COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int), 0) = 0 AND COALESCE((payload->'scenario'->>'raw_proposals_count')::int, 0) > 0 THEN 'no_ott (AMA пуста, у TP только сторонние партнёры)'   WHEN payload->'scenario'->>'before_llm_count' IS NULL AND COALESCE(COALESCE((payload->'scenario'->>'ama_proposals_count')::int, (payload->'scenario'->>'merged_count')::int), 0) = 0 THEN 'no_data (AMA и TP пусты)'   WHEN payload->'scenario'->>'before_llm_count' IS NULL THEN '(нет данных воронки)'   WHEN (payload->'scenario'->>'merged_pool_count')::int = 0 THEN 'no_data (нет proposals)'   WHEN (payload->'scenario'->>'before_llm_count')::int = 0 THEN 'code-filter (killer/даты)'   WHEN (payload->'scenario'->>'after_llm_count')::int = 0 THEN 'LLM-killer'   WHEN (payload->'scenario'->>'after_ott_whitelist_count')::int = 0 THEN 'OTT-whitelist (structural)'   ELSE 'render/ranking' END AS \"Причина\", payload->'scenario'->>'ama_empty_reasons' AS \"AMA пусто\", (payload->'scenario'->>'ama_proxy_failures_count')::int AS \"Сбои прокси AMA\" FROM events WHERE service IN ($service) AND type='scenario.completed' AND (payload->'scenario'->>'tickets_shown')::int = 0 AND $__timeFilter(received_at) ORDER BY received_at DESC LIMIT 50;"
         }
-      ]
+      ],
+      "description": "AMA пусто: почему AMA ответила без билетов (no_data — рейсов нет, no_round_trip — на туда-обратно только билеты в одну сторону, no_one_way — наоборот). TP OTT, AMA пусто и сбои прокси пишутся с digital-assistant-2.0 #611. Причина без данных воронки (before_llm_count пуст): no_ott — у TP нет предложений OneTwoTrip, правило «только OTT» отсекает всё; no_data — оба источника пусты; ama_failed — сбой AMA (по tickets_zero_reason или, у старых поисков, по ama_failed_count / ama_error_types), tp_failed — часть поисков TP упала."
     }
   ]
 }

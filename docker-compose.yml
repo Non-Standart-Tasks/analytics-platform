@@ -53,6 +53,23 @@ services:
       - traefik.http.routers.receiver-https.priority=100
       - traefik.http.services.receiver.loadbalancer.server.port=8000
 
+  report-comments:
+    profiles: ["report-comments"]
+    build: ./receiver
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.report_comments"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    secrets: [ama_report_reader]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
   grafana:
     image: grafana/grafana-oss:latest
     restart: unless-stopped
@@ -95,6 +112,10 @@ services:
       - traefik.http.routers.grafana-https.tls.certresolver=le
       - traefik.http.routers.grafana-https.priority=10
       - traefik.http.services.grafana.loadbalancer.server.port=3000
+
+secrets:
+  ama_report_reader:
+    file: ${AMA_REPORT_READER_FILE:-./.secrets/ama-report-reader.json}
 
 volumes:
   postgres_data:

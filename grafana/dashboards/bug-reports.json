@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "1m",
   "time": {
     "from": "now-30d",
@@ -33,6 +33,20 @@
           "text": "AMA_avia_project",
           "value": "AMA_avia_project"
         }
+      },
+      {
+        "name": "report_id",
+        "label": "Репорт",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "analytics-postgres"
+        },
+        "query": "SELECT title || ' · ' || left(report_id::text, 8) AS __text, report_id::text AS __value FROM ama_report_discussions WHERE ${service:sqlstring} = 'AMA_avia_project' ORDER BY created_at DESC, report_id;",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {}
       }
     ]
   },
@@ -338,6 +352,97 @@
           "format": "table",
           "rawSql": "WITH latest AS (SELECT payload FROM events WHERE service = '$service' AND type = 'report.snapshot' ORDER BY received_at DESC LIMIT 1) SELECT (r->>'created_at')::timestamptz AS \"Создан\", r->>'title' AS \"Заголовок\", r->>'report_id' AS \"Report ID\", r->>'owner_id' AS \"Owner ID\" FROM latest, jsonb_array_elements(payload->'scenario'->'open_reports') AS r ORDER BY (r->>'created_at')::timestamptz DESC;"
         }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Заголовок"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Посмотреть обсуждение",
+                    "url": "/d/bug-reports/avia-ama-bug-reports?var-service=${service:percentencode}&var-report_id=${__data.fields[\"Report ID\"]}&viewPanel=21"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "title": "Комментарии к репорту",
+      "type": "table",
+      "description": "Выберите репорт вверху или нажмите его заголовок в таблице. Файлы доступны в карточке AMA.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 11
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Комментарий"
+            },
+            "properties": [
+              {
+                "id": "custom.wrapText",
+                "value": true
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 360
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Report ID"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Репорт в AMA"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Открыть обсуждение и вложения в AMA",
+                    "url": "https://dashboard-digital-assistant.a-m-a.com/reports?scope=all&id=${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT c.at AS \"Время\", CASE c.role WHEN 'user' THEN 'Пользователь' WHEN 'admin' THEN 'Команда разработки' WHEN 'dev' THEN 'Разработчик' WHEN 'support' THEN 'Поддержка' ELSE c.role END AS \"Автор\", CASE WHEN c.id IS NULL THEN 'Комментариев пока нет' ELSE c.message END AS \"Комментарий\", c.attachments AS \"Файлов\", r.report_id::text AS \"Report ID\" FROM ama_report_discussions r LEFT JOIN LATERAL jsonb_to_recordset(r.comments) AS c(id uuid, at timestamptz, role text, message text, attachments int) ON true WHERE ${service:sqlstring} = 'AMA_avia_project' AND r.report_id::text = ANY(ARRAY[${report_id:sqlstring}]::text[]) ORDER BY c.at, c.id;"
+        }
       ]
     },
     {
@@ -347,7 +452,7 @@
       "description": "События создания / смены статуса / удаления репортов (снапшоты сюда не попадают). 'Новый репорт пришёл' = строка с типом 🆕 создан.",
       "gridPos": {
         "x": 0,
-        "y": 26,
+        "y": 37,
         "w": 24,
         "h": 16
       },
@@ -410,6 +515,23 @@
                 "value": {
                   "type": "color-text"
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Заголовок"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Посмотреть обсуждение",
+                    "url": "/d/bug-reports/avia-ama-bug-reports?var-service=${service:percentencode}&var-report_id=${__data.fields[\"Report ID\"]}&viewPanel=21"
+                  }
+                ]
               }
             ]
           }

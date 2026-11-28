@@ -1,0 +1,1173 @@
+{
+  "title": "AVIA AMA · MCP-поиски и тарифы",
+  "uid": "avia-mcp-fares",
+  "description": "Продовые поиски авиабилетов через MCP, подготовленные карточки и условия обмена и возврата в ответах. Даты и границы месяца указаны по Москве.",
+  "tags": [
+    "AMA_avia_project",
+    "MCP",
+    "telemetry",
+    "fares"
+  ],
+  "timezone": "Europe/Moscow",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now/M",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Поиски авиабилетов через MCP",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 2,
+      "title": "Авиапоиски за период",
+      "description": "Уникальные поиски в проде за выбранный период. Дата поиска — первый старт, при отсутствии старта — первое финальное событие. Повторы одного запроса считаются один раз.",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n)\nSELECT count(*) AS \"Все каналы\", count(*) FILTER (WHERE is_mcp) AS \"MCP\" FROM cohort"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 3,
+      "title": "Доля MCP среди авиапоисков",
+      "description": "Число уникальных MCP-поисков, делённое на число всех уникальных авиапоисков продукта в проде за период. Если поисков не было, доля не определена.",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n)\nSELECT round(100.0 * count(*) FILTER (WHERE is_mcp) / nullif(count(*), 0), 2) AS value FROM cohort"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 4,
+      "title": "MCP-поиски, где нашлись билеты",
+      "description": "По последнему событию поиска к концу периода система подготовила хотя бы один вариант перелёта.",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n), latest AS (\n  SELECT c.*, e.client_timestamp AS last_at, e.type, e.payload->'scenario' AS p\n  FROM cohort c\n  CROSS JOIN LATERAL (\n    SELECT type, client_timestamp, payload\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.request_id = c.request_id AND e.client_timestamp < $__timeTo()\n      AND e.type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    ORDER BY e.client_timestamp DESC, e.received_at DESC, e.id DESC LIMIT 1\n  ) e\n  WHERE c.is_mcp\n), results AS (\n  SELECT *,\n         CASE WHEN type = 'scenario.completed' AND p->>'tickets_shown' ~ '^[0-9]{1,9}$'\n              THEN (p->>'tickets_shown')::int END AS tickets,\n         CASE WHEN type IN ('scenario.completed', 'scenario.failed') AND started_at IS NOT NULL\n              THEN extract(epoch FROM last_at - started_at)\n              WHEN type IN ('scenario.completed', 'scenario.failed') AND p->'timings_ms'->>'total' ~ '^[0-9]{1,12}$'\n              THEN (p->'timings_ms'->>'total')::numeric / 1000 END AS seconds\n  FROM latest\n)\nSELECT count(*) FILTER (WHERE tickets > 0) AS value FROM results"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 5,
+      "title": "Медианное время подбора билетов",
+      "description": "Секунды от первого старта до готовности подборки в поисках с билетами. При отсутствии старта берётся длительность поиска из события завершения.",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n), latest AS (\n  SELECT c.*, e.client_timestamp AS last_at, e.type, e.payload->'scenario' AS p\n  FROM cohort c\n  CROSS JOIN LATERAL (\n    SELECT type, client_timestamp, payload\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.request_id = c.request_id AND e.client_timestamp < $__timeTo()\n      AND e.type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    ORDER BY e.client_timestamp DESC, e.received_at DESC, e.id DESC LIMIT 1\n  ) e\n  WHERE c.is_mcp\n), results AS (\n  SELECT *,\n         CASE WHEN type = 'scenario.completed' AND p->>'tickets_shown' ~ '^[0-9]{1,9}$'\n              THEN (p->>'tickets_shown')::int END AS tickets,\n         CASE WHEN type IN ('scenario.completed', 'scenario.failed') AND started_at IS NOT NULL\n              THEN extract(epoch FROM last_at - started_at)\n              WHEN type IN ('scenario.completed', 'scenario.failed') AND p->'timings_ms'->>'total' ~ '^[0-9]{1,12}$'\n              THEN (p->'timings_ms'->>'total')::numeric / 1000 END AS seconds\n  FROM latest\n)\nSELECT round((percentile_cont(0.5) WITHIN GROUP (ORDER BY seconds))::numeric, 1) AS value FROM results WHERE tickets > 0"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 1,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 6,
+      "title": "Авиапоиски по дням",
+      "description": "Уникальные запросы по московским датам. Первая и последняя даты учитывают только выбранное время. Канал MCP определяется по признаку в событии или историческому префиксу идентификатора.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n), days AS (\n  SELECT generate_series(date_trunc('day', $__timeFrom()::timestamptz AT TIME ZONE 'Europe/Moscow'),\n                         date_trunc('day', ($__timeTo()::timestamptz - interval '1 microsecond') AT TIME ZONE 'Europe/Moscow'),\n                         interval '1 day') AS day\n)\nSELECT greatest(d.day AT TIME ZONE 'Europe/Moscow', $__timeFrom()::timestamptz) AS \"time\",\n       count(c.request_id) FILTER (WHERE c.is_mcp) AS \"MCP\",\n       count(c.request_id) FILTER (WHERE NOT c.is_mcp) AS \"Другие каналы\"\nFROM days d LEFT JOIN cohort c ON (c.first_seen AT TIME ZONE 'Europe/Moscow')::date = d.day::date\nGROUP BY d.day ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Чем завершились MCP-поиски",
+      "description": "Исходы на конец выбранного периода по дате первого старта (МСК). Категория «До выдачи / без счётчика» включает ранние завершения, в том числе запросы с недостающими данными.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n), latest AS (\n  SELECT c.*, e.client_timestamp AS last_at, e.type, e.payload->'scenario' AS p\n  FROM cohort c\n  CROSS JOIN LATERAL (\n    SELECT type, client_timestamp, payload\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.request_id = c.request_id AND e.client_timestamp < $__timeTo()\n      AND e.type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    ORDER BY e.client_timestamp DESC, e.received_at DESC, e.id DESC LIMIT 1\n  ) e\n  WHERE c.is_mcp\n), results AS (\n  SELECT *,\n         CASE WHEN type = 'scenario.completed' AND p->>'tickets_shown' ~ '^[0-9]{1,9}$'\n              THEN (p->>'tickets_shown')::int END AS tickets,\n         CASE WHEN type IN ('scenario.completed', 'scenario.failed') AND started_at IS NOT NULL\n              THEN extract(epoch FROM last_at - started_at)\n              WHEN type IN ('scenario.completed', 'scenario.failed') AND p->'timings_ms'->>'total' ~ '^[0-9]{1,12}$'\n              THEN (p->'timings_ms'->>'total')::numeric / 1000 END AS seconds\n  FROM latest\n), days AS (\n  SELECT generate_series(date_trunc('day', $__timeFrom()::timestamptz AT TIME ZONE 'Europe/Moscow'),\n                         date_trunc('day', ($__timeTo()::timestamptz - interval '1 microsecond') AT TIME ZONE 'Europe/Moscow'),\n                         interval '1 day') AS day\n)\nSELECT greatest(d.day AT TIME ZONE 'Europe/Moscow', $__timeFrom()::timestamptz) AS \"time\",\n       count(*) FILTER (WHERE tickets > 0) AS \"Есть билеты\",\n       count(*) FILTER (WHERE tickets = 0 AND nullif(p->>'early_return_reason', '') IS NULL) AS \"Без билетов\",\n       count(*) FILTER (WHERE type = 'scenario.completed' AND coalesce(tickets, 0) = 0 AND (tickets IS NULL OR nullif(p->>'early_return_reason', '') IS NOT NULL)) AS \"До выдачи / без счётчика\",\n       count(*) FILTER (WHERE type = 'scenario.failed') AS \"Ошибка\",\n       count(*) FILTER (WHERE type = 'scenario.started') AS \"Нет финального события\"\nFROM days d LEFT JOIN results r ON (r.first_seen AT TIME ZONE 'Europe/Moscow')::date = d.day::date\nGROUP BY d.day ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Последние MCP-поиски",
+      "description": "До 100 запросов по убыванию времени первого старта. Маршрут показан кодами IATA, время — в секундах до последнего исхода. Знак «/» обозначает разрыв между сегментами маршрута. Пустая ячейка означает, что поле не пришло в телеметрию. Количество билетов относится к готовой подборке до ограничения выдачи MCP.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH runs AS (\n  SELECT request_id,\n         min(client_timestamp) FILTER (WHERE type = 'scenario.started') AS started_at,\n         coalesce(min(client_timestamp) FILTER (WHERE type = 'scenario.started'), min(client_timestamp)) AS first_seen,\n         bool_or(request_id LIKE 'mcp-%' OR coalesce(payload->'scenario'->>'channel' = 'mcp', false)) AS is_mcp\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  GROUP BY request_id\n), cohort AS (\n  SELECT * FROM runs WHERE first_seen >= $__timeFrom()\n), latest AS (\n  SELECT c.*, e.client_timestamp AS last_at, e.type, e.payload->'scenario' AS p\n  FROM cohort c\n  CROSS JOIN LATERAL (\n    SELECT type, client_timestamp, payload\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.request_id = c.request_id AND e.client_timestamp < $__timeTo()\n      AND e.type IN ('scenario.started', 'scenario.completed', 'scenario.failed')\n    ORDER BY e.client_timestamp DESC, e.received_at DESC, e.id DESC LIMIT 1\n  ) e\n  WHERE c.is_mcp\n), results AS (\n  SELECT *,\n         CASE WHEN type = 'scenario.completed' AND p->>'tickets_shown' ~ '^[0-9]{1,9}$'\n              THEN (p->>'tickets_shown')::int END AS tickets,\n         CASE WHEN type IN ('scenario.completed', 'scenario.failed') AND started_at IS NOT NULL\n              THEN extract(epoch FROM last_at - started_at)\n              WHEN type IN ('scenario.completed', 'scenario.failed') AND p->'timings_ms'->>'total' ~ '^[0-9]{1,12}$'\n              THEN (p->'timings_ms'->>'total')::numeric / 1000 END AS seconds\n  FROM latest\n), routes AS (\n  SELECT *,\n         substring(split_part(p->>'aviasales_url', '?', 1)\n                   FROM '^https://(?:www[.])?aviasales[.]ru/search/([A-Z]{3}[0-9]{4}[A-Z]{3}(?:-?[A-Z]{3}[0-9]{4}[A-Z]{3}|[0-9]{4}[A-Z]{3})*(?:[0-9]{4})?[cwf]?[0-9]+)$') AS path\n  FROM results\n)\nSELECT first_seen AS \"Время\",\n       CASE WHEN path ~ '^[A-Z]{3}[0-9]{4}[A-Z]{3}[0-9]{4}[cwf]?[0-9]+$'\n            THEN left(path,3) || ' ↔ ' || substr(path,8,3)\n            WHEN path IS NOT NULL\n            THEN replace(regexp_replace(regexp_replace(path, '[0-9]*[cwf]?[0-9]+$', ''), '[0-9]{4}', ' → ', 'g'), '-', ' / ')\n            WHEN p->>'origin' ~ '^[A-Z]{3}$' AND p->>'destination' ~ '^[A-Z]{3}$'\n            THEN (p->>'origin') || ' → ' || (p->>'destination') END AS \"Маршрут\",\n       CASE WHEN type = 'scenario.started' THEN 'Нет финального события'\n            WHEN type = 'scenario.failed' THEN 'Ошибка'\n            WHEN tickets > 0 THEN 'Есть билеты'\n            WHEN nullif(p->>'early_return_reason','') IS NOT NULL THEN 'Завершён до выдачи'\n            WHEN tickets = 0 THEN 'Без билетов'\n            ELSE 'Число билетов неизвестно' END AS \"Исход\",\n       tickets AS \"Подготовлено билетов\", round(seconds, 1) AS \"Секунды\",\n       CASE p->>'fare_rules_timed_out' WHEN 'true' THEN 'Да' WHEN 'false' THEN 'Нет' END AS \"Тайм-аут правил\",\n       CASE WHEN coalesce(p->>'early_return_reason', p->>'tickets_zero_reason') ~ '^[a-z][a-z0-9_]{0,63}$'\n            THEN coalesce(p->>'early_return_reason', p->>'tickets_zero_reason') END AS \"Код причины\",\n       CASE WHEN request_id ~ '^mcp-([[:xdigit:]]{32}|[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12})$'\n            THEN request_id ELSE 'ref-' || md5(request_id) END AS \"ID поиска\"\nFROM routes ORDER BY first_seen DESC, request_id LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Тарифы в подготовленных карточках",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 10,
+      "title": "Подготовленные карточки",
+      "description": "Все билеты в сводках завершённых MCP-поисков за период. Один поиск учитывается один раз по последнему завершению. В одну подборку может входить больше билетов, чем вернул MCP.",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\nSELECT sum((summary->>'cards')::integer) AS \"Всего\", sum((summary->>'with_refund_shown')::integer) AS \"Возврат известен\" FROM measured\nWHERE summary ? 'with_refund_shown' AND summary ? 'cards'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 11,
+      "title": "Возврат известен в карточке",
+      "description": "Доля подготовленных карточек с явным условием возврата. Учитывается и запрет возврата. Знаменатель — все карточки со сводкой покрытия.",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 22,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\nSELECT round(100.0 * sum((summary->>'with_refund_shown')::integer) / nullif(sum((summary->>'cards')::integer), 0), 2) AS \"Возврат\" FROM measured\nWHERE summary ? 'with_refund_shown' AND summary ? 'cards'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 12,
+      "title": "Возврат установлен по правилам OneTwoTrip",
+      "description": "Доля всех подготовленных карточек, для которых разбор правил дал статус возврата. Правила могут быть получены из кэша. При отображении карточка также может использовать информацию о тарифном бренде.",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\nSELECT round(100.0 * sum(coalesce((summary->'by_refund_src'->>'rules')::integer, 0)) / nullif(sum((summary->>'cards')::integer), 0), 2) AS \"По правилам\" FROM measured\nWHERE summary ? 'with_refund_shown' AND summary ? 'cards'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 13,
+      "title": "Поиски с тайм-аутом загрузки правил",
+      "description": "Число завершённых поисков, в которых истекло время загрузки тарифных правил. Тайм-аут может затронуть часть карточек успешного поиска. При отсутствии измерений значение пустое.",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 22,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\nSELECT count(*) FILTER (WHERE (run->>'fare_rules_timed_out')::boolean) AS \"Поиски\"\nFROM measured WHERE run ? 'fare_rules_timed_out'\nHAVING count(*) > 0"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 14,
+      "title": "Покрытие возврата по дням",
+      "description": "Московский день завершения поиска. Обе доли рассчитаны от суммы подготовленных карточек за день. Дни без измерений пропускаются.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\n, daily AS (\n  SELECT date_trunc('day', finished_at AT TIME ZONE 'Europe/Moscow') AS day,\n         round(100.0 * sum((summary->>'with_refund_shown')::integer) / nullif(sum((summary->>'cards')::integer), 0), 2) AS refund_pct,\n         round(100.0 * sum(coalesce((summary->'by_refund_src'->>'rules')::integer, 0)) / nullif(sum((summary->>'cards')::integer), 0), 2) AS rules_pct FROM measured\nWHERE summary ? 'with_refund_shown' AND summary ? 'cards'\n  GROUP BY 1\n), days AS (\n  SELECT generate_series(\n    date_trunc('day', $__timeFrom()::timestamptz AT TIME ZONE 'Europe/Moscow'),\n    date_trunc('day', ($__timeTo()::timestamptz - interval '1 microsecond') AT TIME ZONE 'Europe/Moscow'),\n    interval '1 day'\n  ) AS day WHERE EXISTS (SELECT 1 FROM daily)\n)\nSELECT greatest(days.day AT TIME ZONE 'Europe/Moscow', $__timeFrom()::timestamptz) AS time,\n       refund_pct AS \"Возврат известен\", rules_pct AS \"Есть статус из правил OneTwoTrip\"\nFROM days LEFT JOIN daily USING (day) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": false
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Загрузка правил OneTwoTrip по дням",
+      "description": "Поиски и тайм-ауты считаются по завершённым MCP-поискам с включёнными правилами. Остальные счётчики показывают операции при получении правил. «Без ответа» и «Пустые правила» приходят из разных полей телеметрии.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\nSELECT date_trunc('day', finished_at AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow' AS \"День\",\n       count(*) AS \"Поисков\",\n       count(*) FILTER (WHERE (run->>'fare_rules_timed_out')::boolean) AS \"С тайм-аутом\",\n       sum((run->>'fare_rules_requested')::integer) AS \"Запрошено\",\n       sum((run->>'fare_rules_with_status')::integer) AS \"Со статусом\",\n       sum((run->>'fare_rules_cache_hits')::integer) AS \"Из кэша правил\",\n       sum((run->>'fare_rules_llm_cache_hits')::integer) AS \"Из кэша разбора\",\n       sum((run->>'fare_rules_empty_rules')::integer) AS \"Пустые правила\",\n       sum((run->>'fare_rules_no_response')::integer) AS \"Без ответа\",\n       sum((run->>'fare_rules_errors')::integer) AS \"Ошибок\",\n       sum((run->>'fare_rules_budget_skip')::integer) AS \"Пропущено по бюджету\",\n       count(*) FILTER (WHERE (run->>'fare_rules_captcha')::boolean OR (run->>'fare_rules_cooldown_skip')::boolean) AS \"Поисков с капчей или паузой\"\nFROM measured WHERE run ? 'fare_rules_requested'\nGROUP BY 1 ORDER BY 1 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "День"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD.MM.YYYY"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "Возврат по перевозчикам и тарифам в подготовленных карточках",
+      "description": "Разбивка по карточкам из журналов завершённых поисков. Детализация сохраняет первые 40 карточек каждого поиска, а сводные показатели выше учитывают все карточки. Комбинации перевозчиков и кодов тарифа сохраняются вместе.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH completions AS (\n  SELECT DISTINCT ON (request_id)\n         request_id, client_timestamp AS finished_at, payload->'scenario' AS run\n  FROM events\n  WHERE service = 'AMA_avia_project' AND system_env = 'prod'\n    AND type = 'scenario.completed'\n    AND (request_id LIKE 'mcp-%' OR payload->'scenario'->>'channel' = 'mcp')\n    AND nullif(request_id, '') IS NOT NULL AND client_timestamp < $__timeTo()\n  ORDER BY request_id, client_timestamp DESC, received_at DESC, event_id DESC\n), measured AS (\n  SELECT finished_at, run, run->'card_fares_summary' AS summary\n  FROM completions WHERE finished_at >= $__timeFrom()\n)\nSELECT coalesce(nullif(array_to_string(ARRAY(SELECT jsonb_array_elements_text(c->'carriers')), ' + '), ''), 'Не указан') AS \"Перевозчики\",\n       coalesce(nullif(array_to_string(ARRAY(SELECT jsonb_array_elements_text(nullif(c->'fare_codes', 'null'::jsonb))), ' / '), ''), 'Не указан') AS \"Коды тарифа\",\n       coalesce(nullif(c->>'brand', ''), 'Не указан') AS \"Бренд\",\n       count(*) AS \"Карточек\",\n       count(c->>'refund_shown') AS \"С возвратом\",\n       round(100.0 * count(c->>'refund_shown') / count(*), 2) AS \"Покрытие возврата\",\n       count(*) FILTER (WHERE c->>'refund_src' = 'rules') AS \"Статус из правил\"\nFROM measured\nCROSS JOIN LATERAL jsonb_array_elements(run->'card_fares') AS c\nWHERE summary ? 'with_refund_shown' AND c ? 'refund_shown'\nGROUP BY 1, 2, 3 ORDER BY 4 DESC, 1, 2, 3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Покрытие возврата"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Возврат и обмен в ответах MCP · с начала записи покрытия",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 18,
+      "title": "В скольких карточках показаны условия",
+      "description": "Доля уникальных карточек первичной выдачи MCP с явно указанным условием. Запрет возврата или обмена тоже считается известным условием. Знаменатель у трёх показателей общий. Источником служит событие mcp.fare_coverage. Для периодов без таких карточек процент не рассчитывается.",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 24,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH in_range AS (\n    SELECT DISTINCT e.request_id\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.request_id IS NOT NULL\n      AND e.payload->'scenario'->>'stage' = 'search'\n      AND e.client_timestamp >= $__timeFrom()::timestamptz\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), observations AS (\n    SELECT e.request_id, e.client_timestamp, e.received_at, e.event_id,\n           e.payload->'scenario'->>'stage' AS stage, c->>'card_id' AS card_id, c AS card\n    FROM events e\n    JOIN in_range r ON r.request_id = e.request_id\n    CROSS JOIN LATERAL jsonb_array_elements(e.payload->'scenario'->'cards') c\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.payload->'scenario'->>'stage' = 'search'\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), dedup AS (\n    SELECT DISTINCT ON (request_id, stage, card_id)\n           request_id, stage, card,\n           min(client_timestamp) OVER (PARTITION BY request_id, stage, card_id) AS first_seen\n    FROM observations\n    ORDER BY request_id, stage, card_id,\n             CASE WHEN stage = 'followup' THEN client_timestamp END DESC,\n             client_timestamp, received_at, event_id\n), cards AS (\n    SELECT request_id, stage, first_seen, card,\n           coalesce(card->>'refund', 'unknown') <> 'unknown' AS refund,\n           coalesce(card->>'exchange', 'unknown') <> 'unknown' AS exchange,\n           coalesce(card->>'collected_refund', 'unknown') <> 'unknown' AS collected_refund,\n           coalesce(card->>'collected_exchange', 'unknown') <> 'unknown' AS collected_exchange\n    FROM dedup\n    WHERE first_seen >= $__timeFrom()::timestamptz\n)\nSELECT round(100.0 * count(*) FILTER (WHERE refund) / nullif(count(*), 0), 2) AS \"Возврат\",\n       round(100.0 * count(*) FILTER (WHERE exchange) / nullif(count(*), 0), 2) AS \"Обмен\",\n       round(100.0 * count(*) FILTER (WHERE refund AND exchange) / nullif(count(*), 0), 2) AS \"Оба условия\"\nFROM cards\nHAVING count(*) > 0"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "wideLayout": false
+      }
+    },
+    {
+      "id": 19,
+      "title": "Покрытие первичной выдачи по дням",
+      "description": "Каждая точка показывает долю карточек, впервые выданных в этот московский день, с видимым условием возврата, обмена или обоими условиями. Первая и последняя точки учитывают границы выбранного периода. Дни без наблюдений показаны пропуском.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH in_range AS (\n    SELECT DISTINCT e.request_id\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.request_id IS NOT NULL\n      AND e.payload->'scenario'->>'stage' = 'search'\n      AND e.client_timestamp >= $__timeFrom()::timestamptz\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), observations AS (\n    SELECT e.request_id, e.client_timestamp, e.received_at, e.event_id,\n           e.payload->'scenario'->>'stage' AS stage, c->>'card_id' AS card_id, c AS card\n    FROM events e\n    JOIN in_range r ON r.request_id = e.request_id\n    CROSS JOIN LATERAL jsonb_array_elements(e.payload->'scenario'->'cards') c\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.payload->'scenario'->>'stage' = 'search'\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), dedup AS (\n    SELECT DISTINCT ON (request_id, stage, card_id)\n           request_id, stage, card,\n           min(client_timestamp) OVER (PARTITION BY request_id, stage, card_id) AS first_seen\n    FROM observations\n    ORDER BY request_id, stage, card_id,\n             CASE WHEN stage = 'followup' THEN client_timestamp END DESC,\n             client_timestamp, received_at, event_id\n), cards AS (\n    SELECT request_id, stage, first_seen, card,\n           coalesce(card->>'refund', 'unknown') <> 'unknown' AS refund,\n           coalesce(card->>'exchange', 'unknown') <> 'unknown' AS exchange,\n           coalesce(card->>'collected_refund', 'unknown') <> 'unknown' AS collected_refund,\n           coalesce(card->>'collected_exchange', 'unknown') <> 'unknown' AS collected_exchange\n    FROM dedup\n    WHERE first_seen >= $__timeFrom()::timestamptz\n), daily AS (\n           SELECT date_trunc('day', first_seen AT TIME ZONE 'Europe/Moscow') AS day,\n                  round(100.0 * count(*) FILTER (WHERE refund) / nullif(count(*), 0), 2) AS \"Возврат\",\nround(100.0 * count(*) FILTER (WHERE exchange) / nullif(count(*), 0), 2) AS \"Обмен\",\nround(100.0 * count(*) FILTER (WHERE refund AND exchange) / nullif(count(*), 0), 2) AS \"Оба условия\"\n           FROM cards\n           GROUP BY 1\n       ), days AS (\n           SELECT generate_series(\n               date_trunc('day', $__timeFrom()::timestamptz AT TIME ZONE 'Europe/Moscow'),\n               date_trunc('day', ($__timeTo()::timestamptz - interval '1 microsecond') AT TIME ZONE 'Europe/Moscow'),\n               interval '1 day'\n           ) AS day\n           WHERE EXISTS (SELECT 1 FROM daily)\n       )\n       SELECT greatest(days.day AT TIME ZONE 'Europe/Moscow', $__timeFrom()::timestamptz) AS time,\n              d.\"Возврат\", d.\"Обмен\", d.\"Оба условия\"\n       FROM days LEFT JOIN daily d USING (day)\n       ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": false
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "Сколько условий удалось собрать и показать",
+      "description": "Все значения — количества. Поиск учитывается, если в нём зафиксирована хотя бы одна карточка на этом этапе. Для первичной выдачи берётся первое наблюдение каждой карточки, для уточнения — последнее до конца периода. На обоих этапах карточка относится к моменту первого появления на своём этапе. Одна карточка может войти в обе строки.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 24,
+        "h": 5
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH in_range AS (\n    SELECT DISTINCT e.request_id\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.request_id IS NOT NULL\n      AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp >= $__timeFrom()::timestamptz\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), observations AS (\n    SELECT e.request_id, e.client_timestamp, e.received_at, e.event_id,\n           e.payload->'scenario'->>'stage' AS stage, c->>'card_id' AS card_id, c AS card\n    FROM events e\n    JOIN in_range r ON r.request_id = e.request_id\n    CROSS JOIN LATERAL jsonb_array_elements(e.payload->'scenario'->'cards') c\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), dedup AS (\n    SELECT DISTINCT ON (request_id, stage, card_id)\n           request_id, stage, card,\n           min(client_timestamp) OVER (PARTITION BY request_id, stage, card_id) AS first_seen\n    FROM observations\n    ORDER BY request_id, stage, card_id,\n             CASE WHEN stage = 'followup' THEN client_timestamp END DESC,\n             client_timestamp, received_at, event_id\n), cards AS (\n    SELECT request_id, stage, first_seen, card,\n           coalesce(card->>'refund', 'unknown') <> 'unknown' AS refund,\n           coalesce(card->>'exchange', 'unknown') <> 'unknown' AS exchange,\n           coalesce(card->>'collected_refund', 'unknown') <> 'unknown' AS collected_refund,\n           coalesce(card->>'collected_exchange', 'unknown') <> 'unknown' AS collected_exchange\n    FROM dedup\n    WHERE first_seen >= $__timeFrom()::timestamptz\n)\nSELECT CASE stage WHEN 'search' THEN 'Первичная выдача' ELSE 'Уточнение' END AS \"Этап\",\n       count(DISTINCT request_id) AS \"Поисков\", count(*) AS \"Карточек\",\n       count(*) FILTER (WHERE collected_refund) AS \"Возврат собран\",\n       count(*) FILTER (WHERE refund) AS \"Возврат показан\",\n       count(*) FILTER (WHERE collected_exchange) AS \"Обмен собран\",\n       count(*) FILTER (WHERE exchange) AS \"Обмен показан\",\n       count(*) FILTER (WHERE collected_refund AND collected_exchange) AS \"Оба собраны\",\n       count(*) FILTER (WHERE refund AND exchange) AS \"Оба показаны\"\nFROM cards\nGROUP BY stage\nORDER BY stage DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "Возврат и обмен по каждому MCP-поиску",
+      "description": "До 100 последних сочетаний поиска и этапа в интервале. Идентификатор совпадает с таблицей последних поисков. Время указано по первому появлению карточки на этом этапе в выбранном периоде. Повторные чтения карточки на этапе учитываются один раз.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH in_range AS (\n    SELECT DISTINCT e.request_id\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.request_id IS NOT NULL\n      AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp >= $__timeFrom()::timestamptz\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), observations AS (\n    SELECT e.request_id, e.client_timestamp, e.received_at, e.event_id,\n           e.payload->'scenario'->>'stage' AS stage, c->>'card_id' AS card_id, c AS card\n    FROM events e\n    JOIN in_range r ON r.request_id = e.request_id\n    CROSS JOIN LATERAL jsonb_array_elements(e.payload->'scenario'->'cards') c\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), dedup AS (\n    SELECT DISTINCT ON (request_id, stage, card_id)\n           request_id, stage, card,\n           min(client_timestamp) OVER (PARTITION BY request_id, stage, card_id) AS first_seen\n    FROM observations\n    ORDER BY request_id, stage, card_id,\n             CASE WHEN stage = 'followup' THEN client_timestamp END DESC,\n             client_timestamp, received_at, event_id\n), cards AS (\n    SELECT request_id, stage, first_seen, card,\n           coalesce(card->>'refund', 'unknown') <> 'unknown' AS refund,\n           coalesce(card->>'exchange', 'unknown') <> 'unknown' AS exchange,\n           coalesce(card->>'collected_refund', 'unknown') <> 'unknown' AS collected_refund,\n           coalesce(card->>'collected_exchange', 'unknown') <> 'unknown' AS collected_exchange\n    FROM dedup\n    WHERE first_seen >= $__timeFrom()::timestamptz\n)\nSELECT min(first_seen) AS \"Время\",\n       CASE WHEN request_id ~ '^mcp-([[:xdigit:]]{32}|[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12})$'\n            THEN request_id ELSE 'ref-' || md5(request_id) END AS \"ID поиска\",\n       CASE stage WHEN 'search' THEN 'Первичная выдача' ELSE 'Уточнение' END AS \"Этап\",\n       count(*) AS \"Карточек\",\n       count(*) FILTER (WHERE refund) AS \"Возврат показан\",\n       count(*) FILTER (WHERE exchange) AS \"Обмен показан\",\n       count(*) FILTER (WHERE refund AND exchange) AS \"Оба показаны\",\n       count(*) FILTER (WHERE NOT refund AND NOT exchange) AS \"Оба неизвестны\"\nFROM cards GROUP BY request_id, stage\nORDER BY min(first_seen) DESC, request_id, stage LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "Покрытие по перевозчикам и тарифам",
+      "description": "Одна строка соответствует этапу, сочетанию перевозчиков, кодам тарифа по направлениям и бренду. Последняя карточка — время последнего нового наблюдения в группе по дате первого появления карточки на этапе. Проценты рассчитаны от числа карточек в строке. Прочерк означает, что идентификатор отсутствовал в событии.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 76,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH in_range AS (\n    SELECT DISTINCT e.request_id\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.request_id IS NOT NULL\n      AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp >= $__timeFrom()::timestamptz\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), observations AS (\n    SELECT e.request_id, e.client_timestamp, e.received_at, e.event_id,\n           e.payload->'scenario'->>'stage' AS stage, c->>'card_id' AS card_id, c AS card\n    FROM events e\n    JOIN in_range r ON r.request_id = e.request_id\n    CROSS JOIN LATERAL jsonb_array_elements(e.payload->'scenario'->'cards') c\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), dedup AS (\n    SELECT DISTINCT ON (request_id, stage, card_id)\n           request_id, stage, card,\n           min(client_timestamp) OVER (PARTITION BY request_id, stage, card_id) AS first_seen\n    FROM observations\n    ORDER BY request_id, stage, card_id,\n             CASE WHEN stage = 'followup' THEN client_timestamp END DESC,\n             client_timestamp, received_at, event_id\n), cards AS (\n    SELECT request_id, stage, first_seen, card,\n           coalesce(card->>'refund', 'unknown') <> 'unknown' AS refund,\n           coalesce(card->>'exchange', 'unknown') <> 'unknown' AS exchange,\n           coalesce(card->>'collected_refund', 'unknown') <> 'unknown' AS collected_refund,\n           coalesce(card->>'collected_exchange', 'unknown') <> 'unknown' AS collected_exchange\n    FROM dedup\n    WHERE first_seen >= $__timeFrom()::timestamptz\n), fares AS (\n           SELECT stage, nullif(array_to_string(ARRAY(SELECT jsonb_array_elements_text(card->'carriers')), ', '), '') AS carriers,\n                  nullif(array_to_string(ARRAY(SELECT jsonb_array_elements_text(card->'fare_codes')), ' → '), '') AS codes,\n                  card->>'brand' AS brand, request_id, first_seen, refund, exchange\n           FROM cards\n       )\n       SELECT CASE stage WHEN 'search' THEN 'Первичная выдача' ELSE 'Уточнение' END AS \"Этап\",\n              coalesce(carriers, '—') AS \"Перевозчики\", coalesce(codes, '—') AS \"Коды тарифа\",\n              coalesce(brand, '—') AS \"Бренд\", max(first_seen) AS \"Последняя карточка\",\n              count(DISTINCT request_id) AS \"Поисков\", count(*) AS \"Карточек\",\n              round(100.0 * count(*) FILTER (WHERE refund) / nullif(count(*), 0), 2) AS \"Возврат\",\nround(100.0 * count(*) FILTER (WHERE exchange) / nullif(count(*), 0), 2) AS \"Обмен\",\nround(100.0 * count(*) FILTER (WHERE refund AND exchange) / nullif(count(*), 0), 2) AS \"Оба условия\"\n       FROM fares\n       GROUP BY stage, carriers, codes, brand\n       ORDER BY count(*) DESC, stage DESC, carriers, codes, brand"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Возврат"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Обмен"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Оба условия"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Последняя карточка"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 23,
+      "title": "Источники условий и результаты по каждой операции",
+      "description": "Карточка даёт по одной записи для возврата и обмена на каждом этапе. Источник относится к собранному условию, даже если само условие не попало в ответ. Первые пять статусов описывают то, что увидел пользователь. В последних двух колонках разделены известное, но не показанное условие и отсутствие самого условия. Сумма семи колонок равна числу карточек в строке.",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 86,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "analytics-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "analytics-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH in_range AS (\n    SELECT DISTINCT e.request_id\n    FROM events e\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.request_id IS NOT NULL\n      AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp >= $__timeFrom()::timestamptz\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), observations AS (\n    SELECT e.request_id, e.client_timestamp, e.received_at, e.event_id,\n           e.payload->'scenario'->>'stage' AS stage, c->>'card_id' AS card_id, c AS card\n    FROM events e\n    JOIN in_range r ON r.request_id = e.request_id\n    CROSS JOIN LATERAL jsonb_array_elements(e.payload->'scenario'->'cards') c\n    WHERE e.service = 'AMA_avia_project' AND e.system_env = 'prod'\n      AND e.type = 'mcp.fare_coverage' AND e.payload->'scenario'->>'stage' IN ('search', 'followup')\n      AND e.client_timestamp < $__timeTo()::timestamptz\n), dedup AS (\n    SELECT DISTINCT ON (request_id, stage, card_id)\n           request_id, stage, card,\n           min(client_timestamp) OVER (PARTITION BY request_id, stage, card_id) AS first_seen\n    FROM observations\n    ORDER BY request_id, stage, card_id,\n             CASE WHEN stage = 'followup' THEN client_timestamp END DESC,\n             client_timestamp, received_at, event_id\n), cards AS (\n    SELECT request_id, stage, first_seen, card,\n           coalesce(card->>'refund', 'unknown') <> 'unknown' AS refund,\n           coalesce(card->>'exchange', 'unknown') <> 'unknown' AS exchange,\n           coalesce(card->>'collected_refund', 'unknown') <> 'unknown' AS collected_refund,\n           coalesce(card->>'collected_exchange', 'unknown') <> 'unknown' AS collected_exchange\n    FROM dedup\n    WHERE first_seen >= $__timeFrom()::timestamptz\n), operations AS (\n    SELECT stage, op.name, op.value, op.collected, coalesce(op.source, 'unknown') AS source\n    FROM cards\n    CROSS JOIN LATERAL (VALUES\n        ('Возврат', coalesce(card->>'refund', 'unknown'), collected_refund, card->>'refund_source'),\n        ('Обмен', coalesce(card->>'exchange', 'unknown'), collected_exchange, card->>'exchange_source')\n    ) AS op(name, value, collected, source)\n)\nSELECT CASE stage WHEN 'search' THEN 'Первичная выдача' ELSE 'Уточнение' END AS \"Этап\", name AS \"Операция\",\n       CASE source WHEN 'rules' THEN 'Правила перевозчика' WHEN 'brand' THEN 'Бренд тарифа'\n                   WHEN 'search' THEN 'Поисковая выдача' ELSE 'Не определён' END AS \"Источник\",\n       count(*) AS \"Карточек\",\n       count(*) FILTER (WHERE value = 'free') AS \"Без штрафа\",\n       count(*) FILTER (WHERE value = 'with_penalty') AS \"Со штрафом\",\n       count(*) FILTER (WHERE value = 'no') AS \"Запрещено\",\n       count(*) FILTER (WHERE value = 'mixed') AS \"Зависит от участка\",\n       count(*) FILTER (WHERE value = 'allowed') AS \"Разрешено без уточнения\",\n       count(*) FILTER (WHERE value = 'unknown' AND collected) AS \"Собрано, но не показано\",\n       count(*) FILTER (WHERE value = 'unknown' AND NOT collected) AS \"Не собрано\"\nFROM operations\nGROUP BY stage, name, source\nORDER BY stage DESC, name, count(*) DESC, source"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}
